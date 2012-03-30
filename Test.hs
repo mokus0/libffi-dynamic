@@ -6,7 +6,7 @@ import Foreign.C
 import Foreign.Dynamic
 import Foreign.Ptr
 
-foreign import ccall "&printf" p_printf :: FunPtr (CString -> Int32 -> Int64 -> Double -> IO CVoid)
+foreign import ccall "&printf" p_printf :: FunPtr (CString -> Int32 -> Int64 -> Double -> IO ())
 
 main = do
     printf <- dynamic p_printf :: IO (String -> Int32 -> Int -> Double -> IO ())

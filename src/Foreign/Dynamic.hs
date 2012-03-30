@@ -4,13 +4,12 @@ module Foreign.Dynamic
     , importDynamic
     
     , Dynamic, dynamic
-    , CVoid
     ) where
 
 import Control.Applicative
 import Control.Exception
 import Foreign.LibFFI.Experimental.Base
-import Foreign.LibFFI.Experimental.Types
+import Foreign.LibFFI.Experimental.Types ({- instances -})
 import Foreign.Marshal
 import Foreign.Ptr
 import Foreign.Storable

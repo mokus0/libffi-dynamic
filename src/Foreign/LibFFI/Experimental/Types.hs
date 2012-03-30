@@ -1,9 +1,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE TypeFamilies #-}
-module Foreign.LibFFI.Experimental.Types
-    ( CVoid
-    ) where
+module Foreign.LibFFI.Experimental.Types ({- instances -}) where
 
 import Data.Int
 import Data.Word
@@ -11,9 +9,8 @@ import Foreign.C
 import Foreign.LibFFI.Experimental.Base
 import Foreign.Marshal
 import Foreign.Ptr
-import Foreign.Storable
 
-foreign import ccall "&ffi_type_void"    ffi_type_void    :: Type CVoid
+foreign import ccall "&ffi_type_void"    ffi_type_void    :: Type ()
 foreign import ccall "&ffi_type_pointer" ffi_type_pointer :: Type (Ptr a)
 
 foreign import ccall "&ffi_type_float"  ffi_type_float  :: Type Float
@@ -30,17 +27,9 @@ foreign import ccall "&ffi_type_sint32" ffi_type_sint32 :: Type Int32
 foreign import ccall "&ffi_type_sint64" ffi_type_sint64 :: Type Int64
 
 
--- silly type to avoid orphan instance Storable ()
-data CVoid = CVoid deriving (Eq, Ord, Read, Show, Enum, Bounded)
-instance Storable CVoid where
-    sizeOf    _  = 0
-    alignment _  = 0
-    peek _       = return CVoid
-    poke _ CVoid = return ()
-instance FFIType CVoid where
+instance FFIType () where
     ffiType = ffi_type_void
 instance RetType () where
-    type ForeignRet () = CVoid
     retMarshaller_ = Ret_ $ \action -> do
         action nullPtr
         return ()
