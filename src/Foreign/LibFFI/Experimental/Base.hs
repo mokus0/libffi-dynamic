@@ -21,6 +21,12 @@ toSomeType (Type p) = SomeType (Type (castPtr p))
 class Storable a => FFIType a where
     ffiType :: Type a
 
+ffiTypeOf :: FFIType a => p a -> Type a
+ffiTypeOf = const ffiType
+
+ffiTypeOf_ :: FFIType a => p a -> SomeType 
+ffiTypeOf_ = toSomeType . ffiTypeOf
+
 class FFIType (Marshalled a) => ArgType a where
     type Marshalled a
     type Marshalled a = a

@@ -2,7 +2,7 @@ module Foreign.Dynamic (Dynamic, dynamic) where
 
 import Control.Applicative
 import Control.Exception
-import Data.Tagged
+import Data.Proxy
 import Foreign.LibFFI.Experimental.Base
 import Foreign.LibFFI.Experimental.Types ({- instances -})
 import Foreign.Marshal
@@ -12,14 +12,19 @@ import Foreign.Storable
 type WithArgs = (Ptr (Ptr ()) -> IO ()) -> IO ()
 
 class Dynamic a where
-    argTypes :: Tagged a [SomeType]
-    retType  :: Tagged a SomeType
+    argTypesByProxy :: Proxy a -> [SomeType]
+    retTypeByProxy  :: Proxy a -> SomeType
+    
     dynamic' :: CIF -> FunPtr a -> Int -> IO (WithArgs -> a)
 
-argTypesOf :: Dynamic a => FunPtr a -> [SomeType]
-argTypesOf = (const . untag :: Tagged a t -> FunPtr a -> t) argTypes
-retTypeOf  :: Dynamic a => FunPtr a -> SomeType
-retTypeOf = (const . untag :: Tagged a t -> FunPtr a -> t) retType
+proxyOf :: p a -> Proxy a
+proxyOf = const Proxy
+
+argTypesOf :: Dynamic a => p a -> [SomeType]
+argTypesOf = argTypesByProxy . proxyOf
+
+retTypeOf  :: Dynamic a => p a -> SomeType
+retTypeOf = retTypeByProxy . proxyOf
 
 dynamic :: Dynamic a => FunPtr a -> IO a
 dynamic fun = do
@@ -39,26 +44,25 @@ dynamic fun = do
 
     return $! dyn withArgs
 
+ioRetProxy :: Proxy (IO a) -> Proxy (Returned a)
+ioRetProxy = reproxy
+
 instance RetType a => Dynamic (IO a) where
-    argTypes = Tagged []
-    retType = wrap ffiType
-        where
-            wrap :: Type (Returned t) -> Tagged (IO t) SomeType
-            wrap t = Tagged (toSomeType t)
+    argTypesByProxy _ = []
+    retTypeByProxy = ffiTypeOf_ . ioRetProxy
 
     dynamic' cif fun _ = return $ \withArgs ->
         withRet_ (withArgs . ffi_call cif fun)
 
+argProxy :: Proxy (a -> b) -> Proxy (Marshalled a)
+argProxy = reproxy
+
+retProxy :: Proxy (a -> b) -> Proxy b
+retProxy = reproxy
+
 instance (Show a, ArgType a, Dynamic b) => Dynamic (a -> b) where
-    argTypes = cons ffiType argTypes
-        where
-            cons :: Type (Marshalled a) -> Tagged b [SomeType] -> Tagged (a -> b) [SomeType]
-            cons t (Tagged ts) = Tagged (toSomeType t : ts)
-    
-    retType = tl retType
-        where
-            tl :: Tagged b SomeType -> Tagged (a -> b) SomeType
-            tl (Tagged t) = Tagged t
+    argTypesByProxy = liftA2 (:) (ffiTypeOf_ . argProxy) argTypesByProxy
+    retTypeByProxy = retTypeByProxy . retProxy
 
     dynamic' cif fun i = do
         let castFn :: FunPtr (a -> b) -> FunPtr b
