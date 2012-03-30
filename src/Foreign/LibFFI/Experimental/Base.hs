@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeFamilies #-}
 module Foreign.LibFFI.Experimental.Base where
 
@@ -18,23 +19,13 @@ newtype SomeType = SomeType (Type SomeType) deriving (Eq, Show, Storable)
 toSomeType :: Type a -> SomeType
 toSomeType (Type p) = SomeType (Type (castPtr p))
 
-class Storable a => FFIType a where
+class (Storable a, Storable (Returned a)) => FFIType a where
     ffiType :: Type a
-
-ffiTypeOf :: FFIType a => p a -> Type a
-ffiTypeOf = const ffiType
-
-ffiTypeOf_ :: FFIType a => p a -> SomeType 
-ffiTypeOf_ = toSomeType . ffiTypeOf
-
-class FFIType (Marshalled a) => ArgType a where
-    type Marshalled a
-    type Marshalled a = a
-
-    withArg :: a -> (Ptr (Marshalled a) -> IO b) -> IO b
-    default withArg :: (Storable a, a ~ Marshalled a) => a -> (Ptr a -> IO b) -> IO b
-    withArg = with
-class FFIType (Returned a) => RetType a where
+    
+    -- some FFI types (small ints) are returned in larger
+    -- buffers than they need.  On little-endian systems this
+    -- would be OK, but for the sake of big-endian ones we 
+    -- account for this.
     type Returned a
     type Returned a = a
     
@@ -46,10 +37,39 @@ class FFIType (Returned a) => RetType a where
     default fromReturned :: a ~ Returned a => a -> a
     fromReturned = id
 
-withRet_ :: RetType t => (Ptr (Returned t) -> IO b) -> IO t
-withRet_ action = alloca $ \p -> do
-    action p
-    fromReturned <$> peek p
+ffiTypeOf :: FFIType a => p a -> Type a
+ffiTypeOf = const ffiType
+
+ffiTypeOf_ :: FFIType a => p a -> SomeType 
+ffiTypeOf_ = toSomeType . ffiTypeOf
+
+newtype Arg a b = Arg
+    { withArg :: forall t. a -> (Ptr b -> IO t) -> IO t }
+
+class FFIType (ForeignArg a) => ArgType a where
+    type ForeignArg a
+    type ForeignArg a = a
+
+    argMarshaller :: Arg a (ForeignArg a)
+    default argMarshaller :: (Storable a, a ~ ForeignArg a) => Arg a a
+    argMarshaller = Arg with
+
+newtype Ret a b = Ret
+    { withRet :: forall t. (Ptr b -> IO t) -> IO (a, t) }
+
+newtype Ret_ a b = Ret_
+    { withRet_ :: forall t. (Ptr b -> IO t) -> IO a }
+
+class FFIType (ForeignRet a) => RetType a where
+    type ForeignRet a
+    type ForeignRet a = a
+    
+    retMarshaller_  :: Ret_ a (ForeignRet a)
+    default retMarshaller_ :: a ~ ForeignRet a => Ret_ a a
+    retMarshaller_ = Ret_ $ \action ->
+        alloca $ \p -> do
+            action (castPtr p)
+            fromReturned <$> peek p
 
 newtype ABI = ABI CInt
 foreign import ccall getDefaultABI :: IO ABI

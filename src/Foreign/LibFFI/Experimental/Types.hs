@@ -40,9 +40,10 @@ instance Storable CVoid where
 instance FFIType CVoid where
     ffiType = ffi_type_void
 instance RetType () where
-    type Returned () = CVoid
-    toReturned () = CVoid
-    fromReturned CVoid = ()
+    type ForeignRet () = CVoid
+    retMarshaller_ = Ret_ $ \action -> do
+        action nullPtr
+        return ()
 
 instance FFIType (Ptr a) where
     ffiType = ffi_type_pointer
@@ -60,36 +61,37 @@ instance RetType Double
 -- TODO: detect int/word size
 -- TODO: Foreign.C.Types
 instance ArgType Int where
-    type Marshalled Int = Int64
-    withArg = withArg . (fromIntegral :: Int -> Int64)
+    type ForeignArg Int = Int64
+    argMarshaller = Arg (withArg int64arg . fromIntegral)
+        where int64arg = argMarshaller :: Arg Int64 Int64
 instance RetType Int where
-    type Returned Int = Int64
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+    type ForeignRet Int = Int64
+    retMarshaller_ = Ret_ $ fmap fromIntegral . withRet_ int64ret
+        where int64ret = retMarshaller_ :: Ret_ Int64 Int64
 
 instance FFIType Int8 where
     ffiType = ffi_type_sint8
-instance ArgType Int8
-instance RetType Int8 where
     type Returned Int8 = Int64
     toReturned   = fromIntegral
     fromReturned = fromIntegral
+instance ArgType Int8
+instance RetType Int8
 
 instance FFIType Int16 where
     ffiType = ffi_type_sint16
-instance ArgType Int16
-instance RetType Int16 where
     type Returned Int16 = Int64
     toReturned   = fromIntegral
     fromReturned = fromIntegral
+instance ArgType Int16
+instance RetType Int16
 
 instance FFIType Int32 where
     ffiType = ffi_type_sint32
-instance ArgType Int32
-instance RetType Int32 where
     type Returned Int32 = Int64
     toReturned   = fromIntegral
     fromReturned = fromIntegral
+instance ArgType Int32
+instance RetType Int32
 
 instance FFIType Int64 where
     ffiType = ffi_type_sint64
@@ -97,36 +99,37 @@ instance ArgType Int64
 instance RetType Int64
 
 instance ArgType Word where
-    type Marshalled Word = Word64
-    withArg = withArg . (fromIntegral :: Word -> Word64)
+    type ForeignArg Word = Word64
+    argMarshaller = Arg (withArg word64arg . fromIntegral)
+        where word64arg = argMarshaller :: Arg Word64 Word64
 instance RetType Word where
-    type Returned Word = Word64
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+    type ForeignRet Word = Word64
+    retMarshaller_ = Ret_ $ fmap fromIntegral . withRet_ word64ret
+        where word64ret = retMarshaller_ :: Ret_ Word64 Word64
 
 instance FFIType Word8 where
     ffiType = ffi_type_uint8
-instance ArgType Word8
-instance RetType Word8 where
     type Returned Word8 = Word64
     toReturned   = fromIntegral
     fromReturned = fromIntegral
+instance ArgType Word8
+instance RetType Word8
 
 instance FFIType Word16 where
     ffiType = ffi_type_uint16
-instance ArgType Word16
-instance RetType Word16 where
     type Returned Word16 = Word64
     toReturned   = fromIntegral
     fromReturned = fromIntegral
+instance ArgType Word16
+instance RetType Word16
 
 instance FFIType Word32 where
     ffiType = ffi_type_uint32
-instance ArgType Word32
-instance RetType Word32 where
     type Returned Word32 = Word64
     toReturned   = fromIntegral
     fromReturned = fromIntegral
+instance ArgType Word32
+instance RetType Word32
 
 instance FFIType Word64 where
     ffiType = ffi_type_uint64
@@ -135,6 +138,7 @@ instance RetType Word64
 
 -- hmm... this is questionable, I think...
 instance ArgType [Char] where
-    type Marshalled String = CString
-    withArg str action = withCString str $ \cStr -> with cStr action
+    type ForeignArg String = CString
+    argMarshaller = Arg $ \str -> withCString str . flip with
+        
 
