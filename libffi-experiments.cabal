@@ -24,3 +24,4 @@ Library
   ghc-options:          -fwarn-unused-binds -fwarn-unused-imports
   build-depends:        base >= 3,
                         tagged
+  extra-libraries:      ffi
