@@ -19,7 +19,7 @@ newtype SomeType = SomeType (Type SomeType) deriving (Eq, Show, Storable)
 toSomeType :: Type a -> SomeType
 toSomeType (Type p) = SomeType (Type (castPtr p))
 
-class (Storable a, Storable (Returned a)) => FFIType a where
+class FFIType a where
     ffiType :: Type a
     
     -- some FFI types (small ints) are returned in larger
@@ -65,7 +65,7 @@ class FFIType (ForeignRet a) => RetType a where
     type ForeignRet a = a
     
     retMarshaller_  :: Ret_ a (ForeignRet a)
-    default retMarshaller_ :: a ~ ForeignRet a => Ret_ a a
+    default retMarshaller_ :: (Storable (Returned a), a ~ ForeignRet a) => Ret_ a a
     retMarshaller_ = Ret_ $ \action ->
         alloca $ \p -> do
             action (castPtr p)
