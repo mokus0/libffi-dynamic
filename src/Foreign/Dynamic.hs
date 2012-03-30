@@ -18,15 +18,17 @@ type Call = Ptr () -> Ptr (Ptr ()) -> IO ()
 type WithArgs = (Ptr (Ptr ()) -> IO ()) -> IO ()
 
 data Dyn a b = Dyn
-    { argTypes :: [SomeType]
+    { abi      :: ABI
+    , argTypes :: [SomeType]
     , retType  ::  SomeType
     
     , prepDynamic :: Call -> Int -> IO (WithArgs -> a)
     }
 
-dyn :: FFIType b => Ret_ a b -> Dyn (IO a) (IO b)
-dyn ret = Dyn
-    { argTypes = []
+dyn :: ABI -> FFIType b => Ret_ a b -> Dyn (IO a) (IO b)
+dyn abi ret = Dyn
+    { abi = defaultABI
+    , argTypes = []
     , retType  = ffiTypeOf_ ret
     , prepDynamic = \call _ -> return $ \withArgs ->
         withRet_ ret (withArgs . call . castPtr)
@@ -54,7 +56,7 @@ importDynamic dyn fun = do
     argTypes <- newArray (argTypes dyn)
 
     -- TODO: check return code
-    ffi_prep_cif cif defaultABI (fromIntegral nArgs) (retType dyn) argTypes 
+    ffi_prep_cif cif (abi dyn) (fromIntegral nArgs) (retType dyn) argTypes 
 
     dyn <- prepDynamic dyn (ffi_call cif fun) 0
     let withArgs = bracket (mallocArray nArgs) free
@@ -70,7 +72,7 @@ class Dynamic a where
 
 instance RetType a => Dynamic (IO a) where
     type ForeignDyn (IO a) = IO (ForeignRet a)
-    stdDyn = dyn retMarshaller_
+    stdDyn = dyn defaultABI retMarshaller_
 
 instance (ArgType a, Dynamic b) => Dynamic (a -> b) where
     type ForeignDyn (a -> b) = ForeignArg a -> ForeignDyn b
