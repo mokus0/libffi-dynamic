@@ -1,4 +1,4 @@
-module Foreign.Dynamic where
+module Foreign.Dynamic (Dynamic, dynamic) where
 
 import Control.Applicative
 import Control.Exception
