@@ -18,10 +18,12 @@ Library
   hs-source-dirs:       src
   c-sources:            cbits/ffi_wrappers.c
   exposed-modules:      Foreign.Dynamic
+                        Foreign.Wrapper
                         Foreign.LibFFI.Experimental
                         Foreign.LibFFI.Experimental.Base
                         Foreign.LibFFI.Experimental.Types
   ghc-options:          -fwarn-unused-binds -fwarn-unused-imports
   build-depends:        base >= 3,
+                        contravariant,
                         tagged
   extra-libraries:      ffi

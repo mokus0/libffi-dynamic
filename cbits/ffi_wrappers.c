@@ -4,10 +4,15 @@
 #include <ffi.h>
 #endif
 
-int getDefaultABI() {
+int defaultABI() {
 	return FFI_DEFAULT_ABI;
 }
 
-int getSizeOfCIF() {
-	return (int) sizeof(ffi_cif);
+size_t sizeOfCIF() {
+    return sizeof(ffi_cif);
 }
+
+size_t sizeOfClosure() {
+    return sizeof(ffi_closure);
+}
+
