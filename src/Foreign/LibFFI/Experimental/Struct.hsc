@@ -3,10 +3,7 @@
 {-# LANGUAGE TypeFamilies #-}
 module Foreign.LibFFI.Experimental.Struct
     ( struct
-    , someStruct
     , structElements
-    
-    , Description(Prim, Struct)
     ) where
 
 import Data.Hashable
@@ -32,57 +29,46 @@ structElements st@(SomeType t)
             nextPtr p = plusPtr p (sizeOf p)
             loop elems = do
                 e <- peek elems
-                if e == SomeType nullPtr
-                    then return []
-                    else do
-                        es <- unsafeInterleaveIO (loop (nextPtr elems))
-                        return (e:es)
+                return $! if e == SomeType nullPtr
+                    then []
+                    else e : unsafePerformIO (loop (nextPtr elems))
 
+mkStruct :: [SomeType] -> IO SomeType
 mkStruct ts = do
-    t     <- mallocBytes (#size ffi_type)
-    elems <- newArray0 (SomeType nullPtr) ts
+    t <- mallocBytes (#size ffi_type)
     
     (#poke ffi_type, size)      t (0 :: CSize)
     (#poke ffi_type, alignment) t (0 :: CShort)
     (#poke ffi_type, type)      t ((#const FFI_TYPE_STRUCT) :: CShort)
-    (#poke ffi_type, elements)  t elems
+    (#poke ffi_type, elements)  t =<< newArray0 (SomeType nullPtr) ts
     
     return (SomeType t)
 
+newtype Struct = Struct {structType :: SomeType}
+    deriving (Eq, Ord, Show)
 
-instance Interned SomeType where
-    data Description SomeType 
-        = Prim SomeType
-        | Struct [Description SomeType]
+instance Interned Struct where
+    data Description Struct = StructElems [SomeType]
         deriving (Eq, Ord, Show)
     
-    type Uninterned SomeType = Description SomeType
+    type Uninterned Struct = [SomeType]
     
-    describe (Prim   t)  = unintern t
-    describe (Struct ts) = Struct (map describe ts)
-    
-    identity (SomeType t) = fromIntegral (ptrToIntPtr t)
-    
-    identify _ (Prim    t) = t
-    identify _ (Struct ts) = unsafePerformIO (mkStruct (map intern ts))
+    describe = StructElems
+    identity = hash . StructElems . unintern
+    identify _ ts = Struct (unsafePerformIO (mkStruct ts))
     
     cache = typeCache
 
-instance Uninternable SomeType where
-    unintern t
-        | typeIsStruct t = Struct (map unintern (structElements t))
-        | otherwise      = Prim t
+instance Uninternable Struct where
+    unintern (Struct t) = structElements t
 
 {-# NOINLINE typeCache #-}
-typeCache :: Cache SomeType
+typeCache :: Cache Struct
 typeCache = mkCache
 
-instance Hashable (Description SomeType) where
-    hashWithSalt salt (Prim t) = salt `combine` identity t
-    hashWithSalt salt (Struct ts) = foldl' hashWithSalt salt ts
+instance Hashable (Description Struct) where
+    hashWithSalt salt (StructElems ts) = foldl' (\s -> hashWithSalt s . f) salt ts
+        where f (SomeType t) = fromIntegral (ptrToIntPtr t) :: Int
 
-someStruct :: [SomeType] -> SomeType
-someStruct = intern . Struct . map Prim
-
-struct :: [SomeType] -> Type a
-struct = Type . someStruct
+struct :: [SomeType] -> SomeType
+struct = structType . intern

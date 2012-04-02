@@ -11,7 +11,7 @@ import Data.Proxy
 import Data.Word
 import Foreign.C
 import Foreign.LibFFI.Experimental.Base
-import Foreign.LibFFI.Experimental.Struct (struct, someStruct)
+import Foreign.LibFFI.Experimental.Struct (struct)
 import Foreign.Ptr
 
 foreign import ccall "&ffi_type_void"    ffi_type_void    :: Type ()
@@ -140,7 +140,7 @@ instance (FFIType a, FFIType b)
         => FFIType (a, b) where
     ffiType = t
         where
-            t = struct
+            t = Type $ struct
                 [ ffiTypeOf_ ((const Proxy :: Type (a,b) -> Proxy a) t)
                 , ffiTypeOf_ ((const Proxy :: Type (a,b) -> Proxy b) t)
                 ]
@@ -149,7 +149,7 @@ instance (FFIType a, FFIType b, FFIType c)
         => FFIType (a, b, c) where
     ffiType = t
         where
-            t = struct
+            t = Type $ struct
                 [ ffiTypeOf_ ((const Proxy :: Type (a,b,c) -> Proxy a) t)
                 , ffiTypeOf_ ((const Proxy :: Type (a,b,c) -> Proxy b) t)
                 , ffiTypeOf_ ((const Proxy :: Type (a,b,c) -> Proxy c) t)
@@ -159,7 +159,7 @@ instance (FFIType a, FFIType b, FFIType c, FFIType d)
         => FFIType (a, b, c, d) where
     ffiType = t
         where
-            t = struct
+            t = Type $ struct
                 [ ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy a) t)
                 , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy b) t)
                 , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy c) t)
@@ -170,7 +170,7 @@ instance (FFIType a, FFIType b, FFIType c, FFIType d, FFIType e)
         => FFIType (a, b, c, d, e) where
     ffiType = t
         where
-            t = struct
+            t = Type $ struct
                 [ ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy a) t)
                 , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy b) t)
                 , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy c) t)
