@@ -16,7 +16,6 @@ description:            I'm too lame to describe my project
 
 Library
   hs-source-dirs:       src
-  c-sources:            cbits/ffi_wrappers.c
   exposed-modules:      Foreign.Dynamic
                         Foreign.Wrapper
                         Foreign.LibFFI.Experimental

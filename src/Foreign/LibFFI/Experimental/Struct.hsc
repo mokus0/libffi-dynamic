@@ -18,7 +18,10 @@ import System.IO.Unsafe
 
 #include <ffi.h>
 
-foreign import ccall typeIsStruct :: SomeType -> Bool
+typeIsStruct :: SomeType -> Bool
+typeIsStruct (SomeType p) = unsafePerformIO $ do
+    t <- (#peek ffi_type, type) p :: IO CShort
+    return $! t == #const FFI_TYPE_STRUCT
 
 structElements :: SomeType -> [SomeType]
 structElements st@(SomeType t)
