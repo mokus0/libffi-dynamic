@@ -24,7 +24,7 @@ import System.IO.Unsafe
 foreign import ccall typeIsStruct :: SomeType -> Bool
 
 structElements :: SomeType -> [SomeType]
-structElements st@(SomeType (Type t))
+structElements st@(SomeType t)
     | typeIsStruct st = unsafePerformIO
         ((#peek ffi_type, elements) t >>= loop)
     | otherwise = []
@@ -32,22 +32,22 @@ structElements st@(SomeType (Type t))
             nextPtr p = plusPtr p (sizeOf p)
             loop elems = do
                 e <- peek elems
-                if e == nullPtr
+                if e == SomeType nullPtr
                     then return []
                     else do
                         es <- unsafeInterleaveIO (loop (nextPtr elems))
-                        return (SomeType (Type e):es)
+                        return (e:es)
 
 mkStruct ts = do
     t     <- mallocBytes (#size ffi_type)
-    elems <- newArray0 (SomeType (Type nullPtr)) ts
+    elems <- newArray0 (SomeType nullPtr) ts
     
     (#poke ffi_type, size)      t (0 :: CSize)
     (#poke ffi_type, alignment) t (0 :: CShort)
     (#poke ffi_type, type)      t ((#const FFI_TYPE_STRUCT) :: CShort)
     (#poke ffi_type, elements)  t elems
     
-    return (SomeType (Type t))
+    return (SomeType t)
 
 
 instance Interned SomeType where
@@ -61,7 +61,7 @@ instance Interned SomeType where
     describe (Prim   t)  = unintern t
     describe (Struct ts) = Struct (map describe ts)
     
-    identity (SomeType (Type t)) = fromIntegral (ptrToIntPtr t)
+    identity (SomeType t) = fromIntegral (ptrToIntPtr t)
     
     identify _ (Prim    t) = t
     identify _ (Struct ts) = unsafePerformIO (mkStruct (map intern ts))
@@ -85,5 +85,4 @@ someStruct :: [SomeType] -> SomeType
 someStruct = intern . Struct . map Prim
 
 struct :: [SomeType] -> Type a
-struct ts = case someStruct ts of
-    SomeType t -> castType t
+struct = Type . someStruct
