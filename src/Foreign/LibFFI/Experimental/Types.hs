@@ -1,12 +1,17 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE TypeFamilies #-}
-module Foreign.LibFFI.Experimental.Types where
+module Foreign.LibFFI.Experimental.Types
+    ( module Foreign.LibFFI.Experimental.Struct
+    , module Foreign.LibFFI.Experimental.Types
+    ) where
 
 import Data.Int
+import Data.Proxy
 import Data.Word
 import Foreign.C
 import Foreign.LibFFI.Experimental.Base
+import Foreign.LibFFI.Experimental.Struct (struct, someStruct)
 import Foreign.Ptr
 
 foreign import ccall "&ffi_type_void"    ffi_type_void    :: Type ()
@@ -130,3 +135,45 @@ outByRef arg = composeOutArgs arg outArg
 
 stringArg :: OutArg CString String
 stringArg = outByRef (OutArg withCString)
+
+instance (FFIType a, FFIType b)
+        => FFIType (a, b) where
+    ffiType = t
+        where
+            t = struct
+                [ ffiTypeOf_ ((const Proxy :: Type (a,b) -> Proxy a) t)
+                , ffiTypeOf_ ((const Proxy :: Type (a,b) -> Proxy b) t)
+                ]
+
+instance (FFIType a, FFIType b, FFIType c) 
+        => FFIType (a, b, c) where
+    ffiType = t
+        where
+            t = struct
+                [ ffiTypeOf_ ((const Proxy :: Type (a,b,c) -> Proxy a) t)
+                , ffiTypeOf_ ((const Proxy :: Type (a,b,c) -> Proxy b) t)
+                , ffiTypeOf_ ((const Proxy :: Type (a,b,c) -> Proxy c) t)
+                ]
+
+instance (FFIType a, FFIType b, FFIType c, FFIType d) 
+        => FFIType (a, b, c, d) where
+    ffiType = t
+        where
+            t = struct
+                [ ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy a) t)
+                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy b) t)
+                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy c) t)
+                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy d) t)
+                ]
+
+instance (FFIType a, FFIType b, FFIType c, FFIType d, FFIType e)
+        => FFIType (a, b, c, d, e) where
+    ffiType = t
+        where
+            t = struct
+                [ ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy a) t)
+                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy b) t)
+                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy c) t)
+                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy d) t)
+                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy e) t)
+                ]

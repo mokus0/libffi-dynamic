@@ -13,11 +13,11 @@ import Foreign.C.Types
 import Foreign.Ptr
 import Foreign.Storable
 
-newtype Type t = Type (Ptr (Type t)) deriving (Eq, Show, Storable)
+newtype Type t = Type (Ptr (Type t)) deriving (Eq, Ord, Show, Storable)
 castType :: Type a -> Type b
 castType (Type t) = Type (castPtr t)
 
-newtype SomeType = SomeType (Type SomeType) deriving (Eq, Show, Storable)
+newtype SomeType = SomeType (Type SomeType) deriving (Eq, Ord, Show, Storable)
 toSomeType :: Type a -> SomeType
 toSomeType (Type p) = SomeType (Type (castPtr p))
 

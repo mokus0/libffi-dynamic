@@ -21,9 +21,12 @@ Library
                         Foreign.Wrapper
                         Foreign.LibFFI.Experimental
                         Foreign.LibFFI.Experimental.Base
+                        Foreign.LibFFI.Experimental.Struct
                         Foreign.LibFFI.Experimental.Types
   ghc-options:          -fwarn-unused-binds -fwarn-unused-imports
   build-depends:        base >= 3,
                         contravariant,
+                        hashable,
+                        intern,
                         tagged
   extra-libraries:      ffi
