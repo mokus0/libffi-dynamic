@@ -3,46 +3,34 @@
 module Foreign.Dynamic
     ( Dyn, mkDyn, consDyn
     , importDyn
+    , importDynWithABI
     
     , Dynamic, dynamic, dyn
     ) where
 
 import Control.Exception
-import Data.Proxy
 import Foreign.LibFFI.Experimental.CIF
 import Foreign.LibFFI.Experimental.FFIType
-import Foreign.LibFFI.Experimental.Type
 import Foreign.Marshal
 import Foreign.Ptr
 import Foreign.Storable
 
-type Call = Ptr () -> Ptr (Ptr ()) -> IO ()
+type Call t = Ptr (SigReturn t) -> Ptr (Ptr ()) -> IO ()
 type WithArgs = (Ptr (Ptr ()) -> IO ()) -> IO ()
 
-data Dyn a b = Dyn
-    { abi      :: ABI
-    , argTypes :: [SomeType]
-    , retType  ::  SomeType
-    
-    , prepDynamic :: Call -> Int -> IO (WithArgs -> b)
+newtype Dyn a b = Dyn
+    { prepDynamic :: Call a -> Int -> IO (WithArgs -> b)
     }
 
-fstProxy :: p a b -> Proxy a
-fstProxy _ = Proxy
-
-mkDyn :: ABI -> FFIType a => InRet a b -> Dyn (IO a) (IO b)
-mkDyn abi ret = Dyn
-    { abi = defaultABI
-    , argTypes = []
-    , retType  = ffiTypeOf_ (fstProxy ret)
-    , prepDynamic = \call _ -> return $ \withArgs ->
+mkDyn :: InRet a b -> Dyn (IO a) (IO b)
+mkDyn ret = Dyn 
+    { prepDynamic = \call _ -> return $ \withArgs ->
         withInRet ret (withArgs . call . castPtr)
     }
 
-consDyn :: FFIType a => OutArg a b -> Dyn c d -> Dyn (a -> c) (b -> d)
+consDyn :: OutArg a b -> Dyn c d -> Dyn (a -> c) (b -> d)
 consDyn arg dyn = dyn
-    { argTypes = ffiTypeOf_ (fstProxy arg) : argTypes dyn
-    , prepDynamic = \call i -> do
+    { prepDynamic = \call i -> do
         dyn <- prepDynamic dyn call (i+1)
         return $ \withArgs x ->
             dyn $ \action ->
@@ -52,13 +40,16 @@ consDyn arg dyn = dyn
                         action args
     }
 
-importDyn :: Dyn a b -> FunPtr a -> IO b
-importDyn dyn fun = do
-    let cif = getCIF (abi dyn) (retType dyn) (argTypes dyn)
-        nArgs = length (argTypes dyn)
+importDyn :: SigType a => Dyn a b -> FunPtr a -> IO b
+importDyn = importDynWithABI defaultABI
 
-    dyn <- prepDynamic dyn (ffi_call cif fun) 0
-    let withArgs = bracket (mallocArray nArgs) free
+importDynWithABI :: SigType a => ABI -> Dyn a b -> FunPtr a -> IO b
+importDynWithABI abi dyn fun = do
+    let theCIF = cifWithABI abi
+        n = nArgs theCIF
+    
+    dyn <- prepDynamic dyn (ffi_call theCIF fun) 0
+    let withArgs = bracket (mallocArray n) free
 
     return $! dyn withArgs
 
@@ -68,11 +59,11 @@ dynamic = importDyn stdDyn
 dyn :: Dynamic a => Dyn a a
 dyn = stdDyn
 
-class Dynamic a where
+class SigType a => Dynamic a where
     stdDyn :: Dyn a a
 
 instance RetType a => Dynamic (IO a) where
-    stdDyn = mkDyn defaultABI inRet
+    stdDyn = mkDyn inRet
 
 instance (ArgType a, Dynamic b) => Dynamic (a -> b) where
     stdDyn = consDyn outArg stdDyn

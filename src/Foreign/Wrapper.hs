@@ -1,41 +1,33 @@
 {-# LANGUAGE RankNTypes #-}
-module Foreign.Wrapper where
+module Foreign.Wrapper
+    ( Wrap, mkWrap, consWrap
+    , exportWrap
+    , exportWrapWithABI
+    
+    , Wrapper, wrap, wrapper
+    ) where
 
 import Data.Proxy
 import Foreign.LibFFI.Experimental.Base
 import Foreign.LibFFI.Experimental.CIF
 import Foreign.LibFFI.Experimental.Closure
 import Foreign.LibFFI.Experimental.FFIType
-import Foreign.LibFFI.Experimental.Type
 import Foreign.Marshal
 import Foreign.Ptr
 import Foreign.Storable
 
-data Wrap a b = Wrap
-    { abi      :: ABI
-    , argTypes :: [SomeType]
-    , retType  ::  SomeType
-    
-    , prepWrapper :: IO (a -> Ptr (Ptr  ()) -> Ptr () -> IO ())
+newtype Wrap a b = Wrap
+    { prepWrapper :: IO (a -> Ptr (Ptr ()) -> Ptr (SigReturn b) -> IO ())
     }
 
-fstProxy :: p a b -> Proxy a
-fstProxy _ = Proxy
-
-mkWrap :: FFIType a => ABI -> OutRet a b -> Wrap (IO b) (IO a)
-mkWrap abi ret = Wrap
-    { abi = abi
-    , argTypes = []
-    , retType = ffiTypeOf_ (fstProxy ret)
-    
-    , prepWrapper = return $ \fun -> const (withOutRet ret fun . castPtr)
+mkWrap :: OutRet a b -> Wrap (IO b) (IO a)
+mkWrap ret = Wrap
+    { prepWrapper = return $ \fun -> const (withOutRet ret fun . castPtr)
     }
 
-consWrap :: FFIType a => InArg a b -> Wrap c d -> Wrap (b -> c) (a -> d)
+consWrap :: InArg a b -> Wrap c d -> Wrap (b -> c) (a -> d)
 consWrap p wrap = wrap
-    { argTypes = ffiTypeOf_ (fstProxy p) : argTypes wrap
-    
-    , prepWrapper = do
+    { prepWrapper = do
         wrap <- prepWrapper wrap
         return $ \fun args ret -> do
             withInArg p (castPtr args)
@@ -47,13 +39,19 @@ consWrap p wrap = wrap
 fromEntry :: Entry -> FunPtr a
 fromEntry (Entry p) = castFunPtr p
 
-exportWrap :: Wrap a b -> a -> IO (FunPtr b)
-exportWrap wrap fun = do
-    let cif = getCIF (abi wrap) (retType wrap) (argTypes wrap)
+exportWrap :: SigType b => Wrap a b -> a -> IO (FunPtr b)
+exportWrap = exportWrapWithABI defaultABI
+
+exportWrapWithABI :: SigType b => ABI -> Wrap a b -> a -> IO (FunPtr b)
+exportWrapWithABI abi wrap fun = do
+    let cifTypeProxy :: Wrap a b -> Proxy (CIF b)
+        cifTypeProxy _ = Proxy
+        
+        cif = cifWithABI abi `asProxyTypeOf` cifTypeProxy wrap
     
     wrap <- prepWrapper wrap
     impl <- wrap_FFI_Impl $ \_ ret args _ -> wrap fun args ret
-        
+    
     alloca $ \entryPtr -> do
         closure <- ffi_closure_alloc sizeOfClosure entryPtr
         entry <- peek entryPtr
@@ -65,11 +63,14 @@ exportWrap wrap fun = do
 wrapper :: Wrapper a => a -> IO (FunPtr a)
 wrapper = exportWrap stdWrap
 
-class Wrapper a where
+class SigType a => Wrapper a where
     stdWrap :: Wrap a a
 
+wrap :: Wrapper a => Wrap a a
+wrap = stdWrap
+
 instance RetType a => Wrapper (IO a) where
-    stdWrap = mkWrap defaultABI outRet
+    stdWrap = mkWrap outRet
 
 instance (ArgType a, Wrapper b) => Wrapper (a -> b) where
     stdWrap = consWrap inArg stdWrap
