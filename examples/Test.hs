@@ -5,10 +5,7 @@ import Data.Int
 import Data.Word
 import Data.IORef
 import Foreign.C
-import Foreign.Dynamic
-import Foreign.Wrapper
-import Foreign.LibFFI.Experimental.Base
-import Foreign.LibFFI.Experimental.Types
+import Foreign.LibFFI.Experimental
 import Foreign.Ptr
 import Foreign.Storable
 

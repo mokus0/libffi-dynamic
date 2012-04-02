@@ -1,17 +1,14 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE TypeFamilies #-}
-module Foreign.LibFFI.Experimental.Types
-    ( module Foreign.LibFFI.Experimental.Struct
-    , module Foreign.LibFFI.Experimental.Types
-    ) where
+module Foreign.LibFFI.Experimental.Types where
 
 import Data.Int
 import Data.Proxy
 import Data.Word
 import Foreign.C
 import Foreign.LibFFI.Experimental.Base
-import Foreign.LibFFI.Experimental.Struct (struct)
+import Foreign.LibFFI.Experimental.Struct
 import Foreign.Ptr
 
 foreign import ccall "&ffi_type_void"    ffi_type_void    :: Type ()
