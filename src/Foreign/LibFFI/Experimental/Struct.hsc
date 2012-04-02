@@ -59,14 +59,14 @@ instance Interned Struct where
     describe = StructElems
     identify _ = Struct . unsafePerformIO . mkStruct
     
-    cache = typeCache
+    cache = structCache
 
 instance Uninternable Struct where
     unintern (Struct t) = structElements t
 
-{-# NOINLINE typeCache #-}
-typeCache :: Cache Struct
-typeCache = mkCache
+{-# NOINLINE structCache #-}
+structCache :: Cache Struct
+structCache = mkCache
 
 instance Hashable (Description Struct) where
     hashWithSalt salt (StructElems ts) = foldl' (\s -> hashWithSalt s . f) salt ts
