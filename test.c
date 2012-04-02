@@ -6,7 +6,7 @@ unsigned char replicateM_ (unsigned char n, void (*action)()) {
 
 typedef struct {
     unsigned short x;
-    float y
+    float y;
 } pair;
 pair mkPair(unsigned short x, float y) {
     return (pair) { x , y };
