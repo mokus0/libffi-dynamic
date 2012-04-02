@@ -54,7 +54,6 @@ instance Interned Struct where
     type Uninterned Struct = [SomeType]
     
     describe = StructElems
-    identity = hash . StructElems . unintern
     identify _ ts = Struct (unsafePerformIO (mkStruct ts))
     
     cache = typeCache
