@@ -7,11 +7,11 @@ module Foreign.Dynamic
     , Dynamic, dynamic, dyn
     ) where
 
-import Control.Applicative
 import Control.Exception
 import Data.Proxy
-import Foreign.LibFFI.Experimental.Base
-import Foreign.LibFFI.Experimental.Types ({- instances -})
+import Foreign.LibFFI.Experimental.CIF
+import Foreign.LibFFI.Experimental.FFIType
+import Foreign.LibFFI.Experimental.Type
 import Foreign.Marshal
 import Foreign.Ptr
 import Foreign.Storable
@@ -54,14 +54,8 @@ consDyn arg dyn = dyn
 
 importDyn :: Dyn a b -> FunPtr a -> IO b
 importDyn dyn fun = do
-    let nArgs  = length (argTypes dyn)
-
-    -- these should not be freed as long as the returned @a@ is reachable
-    cif <- CIF <$> mallocBytes (fromIntegral sizeOfCIF)
-    argTypes <- newArray (argTypes dyn)
-
-    -- TODO: check return code
-    ffi_prep_cif cif (abi dyn) (fromIntegral nArgs) (retType dyn) argTypes 
+    let cif = getCIF (abi dyn) (retType dyn) (argTypes dyn)
+        nArgs = length (argTypes dyn)
 
     dyn <- prepDynamic dyn (ffi_call cif fun) 0
     let withArgs = bracket (mallocArray nArgs) free

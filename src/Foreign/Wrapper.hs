@@ -1,10 +1,12 @@
 {-# LANGUAGE RankNTypes #-}
 module Foreign.Wrapper where
 
-import Control.Applicative
 import Data.Proxy
 import Foreign.LibFFI.Experimental.Base
-import Foreign.LibFFI.Experimental.Types ({- instances -})
+import Foreign.LibFFI.Experimental.CIF
+import Foreign.LibFFI.Experimental.Closure
+import Foreign.LibFFI.Experimental.FFIType
+import Foreign.LibFFI.Experimental.Type
 import Foreign.Marshal
 import Foreign.Ptr
 import Foreign.Storable
@@ -47,14 +49,7 @@ fromEntry (Entry p) = castFunPtr p
 
 exportWrap :: Wrap a b -> a -> IO (FunPtr b)
 exportWrap wrap fun = do
-    let nArgs  = length (argTypes wrap)
-    
-    -- these should not be freed as long as the returned @FunPtr@ is reachable
-    cif <- CIF <$> mallocBytes (fromIntegral sizeOfCIF)
-    argTypes <- newArray (argTypes wrap)
-    
-    -- TODO: check return code
-    ffi_prep_cif cif (abi wrap) (fromIntegral nArgs) (retType wrap) argTypes 
+    let cif = getCIF (abi wrap) (retType wrap) (argTypes wrap)
     
     wrap <- prepWrapper wrap
     impl <- wrap_FFI_Impl $ \_ ret args _ -> wrap fun args ret

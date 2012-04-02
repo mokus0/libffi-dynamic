@@ -20,8 +20,10 @@ Library
                         Foreign.Wrapper
                         Foreign.LibFFI.Experimental
                         Foreign.LibFFI.Experimental.Base
-                        Foreign.LibFFI.Experimental.Struct
-                        Foreign.LibFFI.Experimental.Types
+                        Foreign.LibFFI.Experimental.CIF
+                        Foreign.LibFFI.Experimental.Closure
+                        Foreign.LibFFI.Experimental.FFIType
+                        Foreign.LibFFI.Experimental.Type
   ghc-options:          -fwarn-unused-binds -fwarn-unused-imports
   build-depends:        base >= 3,
                         contravariant,
