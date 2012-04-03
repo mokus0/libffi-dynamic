@@ -1,11 +1,7 @@
 {-# LANGUAGE DefaultSignatures #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE TypeFamilies #-}
 module Foreign.LibFFI.Experimental.FFIType where
 
-import Control.Applicative
 import Data.Functor.Contravariant
 import Data.Int
 import Data.Proxy
@@ -18,21 +14,6 @@ import Foreign.Storable
 
 class FFIType a where
     ffiType :: Type a
-    
-    -- some FFI types (small ints) are returned in larger
-    -- buffers than they need.  On little-endian systems this
-    -- would be OK, but for the sake of big-endian ones we 
-    -- account for this.
-    type Returned a
-    type Returned a = a
-    
-    toReturned :: a -> Returned a
-    default toReturned :: a ~ Returned a => a -> a
-    toReturned = id
-    
-    fromReturned :: Returned a -> a
-    default fromReturned :: a ~ Returned a => a -> a
-    fromReturned = id
 
 ffiTypeOf :: FFIType a => p a -> Type a
 ffiTypeOf = const ffiType
@@ -44,9 +25,15 @@ newtype InArg a b = InArg { withInArg :: forall t. Ptr a -> (b -> IO t) -> IO t 
 instance Functor (InArg a) where
     fmap f (InArg g) = InArg (\p k -> g p (k . f))
 
+castInArg :: InArg a c -> InArg b c
+castInArg (InArg f) = InArg (f . castPtr)
+
 newtype OutArg a b = OutArg { withOutArg :: forall t. b -> (Ptr a -> IO t) -> IO t }
 instance Contravariant (OutArg a) where
     contramap f arg = OutArg (withOutArg arg . f)
+
+castOutArg :: OutArg a c -> OutArg b c
+castOutArg (OutArg f) = OutArg (\x k -> f x (k . castPtr))
 
 composeInArgs :: InArg a (Ptr b) -> InArg b c -> InArg a c
 composeInArgs f g = InArg $ \p -> withInArg f p . flip (withInArg g)
@@ -65,25 +52,30 @@ class FFIType a => ArgType a where
 
 newtype InRet a b = InRet
     { withInRet :: forall t. (Ptr a -> IO t) -> IO b }
-
 instance Functor (InRet a) where
     fmap f ret = InRet (fmap f . withInRet ret)
 
-newtype OutRet a b = OutRet { withOutRet :: IO b -> Ptr (Returned a) -> IO () }
+castInRet :: InRet a c -> InRet b c
+castInRet (InRet f) = InRet (\k -> f (k . castPtr))
+
+newtype OutRet a b = OutRet { withOutRet :: IO b -> Ptr a -> IO () }
 instance Contravariant (OutRet a) where
     contramap f arg = OutRet (withOutRet arg . fmap f)
 
+castOutRet :: OutRet a c -> OutRet b c
+castOutRet (OutRet f) = OutRet (\x -> f x . castPtr)
+
 class FFIType a => RetType a where
     inRet  :: InRet a a
-    default inRet :: Storable (Returned a) => InRet a a
+    default inRet :: Storable a => InRet a a
     inRet = InRet $ \action ->
         alloca $ \p -> do
-            action (castPtr p)
-            fromReturned <$> peek p
+            action p
+            peek p
     
     outRet :: OutRet a a
-    default outRet :: Storable (Returned a) => OutRet a a
-    outRet = OutRet $ \x p -> poke p . toReturned =<< x
+    default outRet :: Storable a => OutRet a a
+    outRet = OutRet $ \x p -> poke p =<< x
 
 instance FFIType () where ffiType = void
 instance RetType () where
@@ -112,29 +104,33 @@ instance FFIType Int where ffiType = sint
 instance ArgType Int
 instance RetType Int
 
-instance FFIType Int8 where
-    ffiType = sint8
-    type Returned Int8 = Int
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+inRetViaInt :: Integral a => InRet a a
+inRetViaInt = castInRet (fmap (fromIntegral :: Integral a => Int -> a ) inRet)
+inRetViaWord :: Integral a => InRet a a
+inRetViaWord = castInRet (fmap (fromIntegral :: Integral a => Word -> a ) inRet)
+
+outRetViaInt :: Integral a => OutRet a a
+outRetViaInt = castOutRet (contramap (fromIntegral :: Integral a => a -> Int) outRet)
+outRetViaWord :: Integral a => OutRet a a
+outRetViaWord = castOutRet (contramap (fromIntegral :: Integral a => a -> Word) outRet)
+
+instance FFIType Int8 where ffiType = sint8
 instance ArgType Int8
-instance RetType Int8
+instance RetType Int8 where
+    inRet  = inRetViaInt
+    outRet = outRetViaInt
 
-instance FFIType Int16 where
-    ffiType = sint16
-    type Returned Int16 = Int
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType Int16 where ffiType = sint16
 instance ArgType Int16
-instance RetType Int16
+instance RetType Int16 where
+    inRet  = inRetViaInt
+    outRet = outRetViaInt
 
-instance FFIType Int32 where
-    ffiType = sint32
-    type Returned Int32 = Int
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType Int32 where ffiType = sint32
 instance ArgType Int32
-instance RetType Int32
+instance RetType Int32 where
+    inRet  = inRetViaInt
+    outRet = outRetViaInt
 
 instance FFIType Int64 where ffiType = sint64
 instance ArgType Int64
@@ -145,89 +141,69 @@ instance FFIType Word where ffiType = uint
 instance ArgType Word
 instance RetType Word
 
-instance FFIType Word8 where
-    ffiType = uint8
-    type Returned Word8 = Word
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType Word8 where ffiType = uint8
 instance ArgType Word8
-instance RetType Word8
+instance RetType Word8 where
+    inRet  = inRetViaWord
+    outRet = outRetViaWord
 
-instance FFIType Word16 where
-    ffiType = uint16
-    type Returned Word16 = Word
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType Word16 where ffiType = uint16
 instance ArgType Word16
-instance RetType Word16
+instance RetType Word16 where
+    inRet  = inRetViaWord
+    outRet = outRetViaWord
 
-instance FFIType Word32 where
-    ffiType = uint32
-    type Returned Word32 = Word
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType Word32 where ffiType = uint32
 instance ArgType Word32
-instance RetType Word32
+instance RetType Word32 where
+    inRet  = inRetViaWord
+    outRet = outRetViaWord
 
 instance FFIType Word64 where ffiType = uint64
 instance ArgType Word64
 instance RetType Word64
 
-instance FFIType CChar where
-    ffiType = sint
-    type Returned CChar = Int
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType CChar where ffiType = sint
 instance ArgType CChar
-instance RetType CChar
+instance RetType CChar where
+    inRet  = inRetViaInt
+    outRet = outRetViaInt
 
-instance FFIType CSChar where
-    ffiType = sint
-    type Returned CSChar = Int
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType CSChar where ffiType = sint
 instance ArgType CSChar
-instance RetType CSChar
+instance RetType CSChar where
+    inRet  = inRetViaInt
+    outRet = outRetViaInt
 
-instance FFIType CUChar where
-    ffiType = uint
-    type Returned CUChar = Word
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType CUChar where ffiType = uint
 instance ArgType CUChar
-instance RetType CUChar
+instance RetType CUChar where
+    inRet  = inRetViaWord
+    outRet = outRetViaWord
 
-instance FFIType CShort where
-    ffiType = sint
-    type Returned CShort = Int
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType CShort where ffiType = sint
 instance ArgType CShort
-instance RetType CShort
+instance RetType CShort where
+    inRet  = inRetViaInt
+    outRet = outRetViaInt
 
-instance FFIType CUShort where
-    ffiType = uint
-    type Returned CUShort = Int
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType CUShort where ffiType = uint
 instance ArgType CUShort
-instance RetType CUShort
+instance RetType CUShort where
+    inRet  = inRetViaWord
+    outRet = outRetViaWord
 
-instance FFIType CInt where
-    ffiType = sint
-    type Returned CInt = Int
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType CInt where ffiType = sint
 instance ArgType CInt
-instance RetType CInt
+instance RetType CInt where
+    inRet  = inRetViaInt
+    outRet = outRetViaInt
 
-instance FFIType CUInt where
-    ffiType = uint
-    type Returned CUInt = Word
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType CUInt where ffiType = uint
 instance ArgType CUInt
-instance RetType CUInt
+instance RetType CUInt where
+    inRet  = inRetViaWord
+    outRet = outRetViaWord
 
 instance FFIType CLong where ffiType = sint
 instance ArgType CLong
@@ -245,13 +221,11 @@ instance FFIType CSize where ffiType = uint
 instance ArgType CSize
 instance RetType CSize
 
-instance FFIType CWchar where
-    ffiType = sint
-    type Returned CWchar = Int
-    toReturned   = fromIntegral
-    fromReturned = fromIntegral
+instance FFIType CWchar where ffiType = sint
 instance ArgType CWchar
-instance RetType CWchar
+instance RetType CWchar where
+    inRet  = inRetViaInt
+    outRet = outRetViaInt
 
 instance FFIType CSigAtomic where ffiType = sint
 instance ArgType CSigAtomic
@@ -304,8 +278,6 @@ instance RetType CFloat
 instance FFIType CDouble where ffiType = floating
 instance ArgType CDouble
 instance RetType CDouble
-
-
 
 outByRef :: OutArg a b -> OutArg (Ptr a) b
 outByRef arg = composeOutArgs arg outArg

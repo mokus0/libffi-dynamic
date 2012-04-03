@@ -89,7 +89,7 @@ class SigType t where
     argTypesOf :: Proxy t -> [SomeType]
 
 instance RetType t => SigType (IO t) where
-    type SigReturn (IO t) = Returned t
+    type SigReturn (IO t) = t
     
     retTypeOf = ffiTypeOf_ . (reproxy :: Proxy (IO b) -> Proxy b)
     argTypesOf _ = []
