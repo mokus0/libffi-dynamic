@@ -7,7 +7,6 @@ module Foreign.Wrapper
     , Wrapper, wrap, wrapper
     ) where
 
-import Data.Proxy
 import Foreign.LibFFI.Experimental.Base
 import Foreign.LibFFI.Experimental.CIF
 import Foreign.LibFFI.Experimental.Closure
@@ -44,10 +43,10 @@ exportWrap = exportWrapWithABI defaultABI
 
 exportWrapWithABI :: SigType b => ABI -> Wrap a b -> a -> IO (FunPtr b)
 exportWrapWithABI abi wrap fun = do
-    let cifTypeProxy :: Wrap a b -> Proxy (CIF b)
-        cifTypeProxy _ = Proxy
+    let asWrappedTypeOf :: CIF b -> Wrap a b -> CIF b
+        asWrappedTypeOf = const 
         
-        cif = cifWithABI abi `asProxyTypeOf` cifTypeProxy wrap
+        cif = cifWithABI abi `asWrappedTypeOf` wrap
     
     wrap <- prepWrapper wrap
     impl <- wrap_FFI_Impl $ \_ ret args _ -> wrap fun args ret

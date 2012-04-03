@@ -25,7 +25,6 @@ import Control.Applicative
 import Data.Hashable
 import Data.Interned
 import Data.List
-import Data.Proxy
 import Foreign.LibFFI.Experimental.Base
 import Foreign.LibFFI.Experimental.FFIType
 import Foreign.LibFFI.Experimental.Type
@@ -85,22 +84,22 @@ getCIF abi retType argTypes = intern (Sig abi retType argTypes)
 class SigType t where
     type SigReturn t
     
-    retTypeOf  :: Proxy t ->  SomeType
-    argTypesOf :: Proxy t -> [SomeType]
+    retTypeOf  :: p t ->  SomeType
+    argTypesOf :: p t -> [SomeType]
 
 instance RetType t => SigType (IO t) where
     type SigReturn (IO t) = t
     
-    retTypeOf = ffiTypeOf_ . (reproxy :: Proxy (IO b) -> Proxy b)
+    retTypeOf = ffiTypeOf_ . (const Nothing :: p (IO b) -> Maybe b)
     argTypesOf _ = []
 
 instance (ArgType a, SigType b) => SigType (a -> b) where
     type SigReturn (a -> b) = SigReturn b
     
-    retTypeOf = retTypeOf . (reproxy :: Proxy (a -> b) -> Proxy b)
+    retTypeOf = retTypeOf . (const Nothing :: p (a -> b) -> Maybe b)
     argTypesOf p
-        = ffiTypeOf_ ((reproxy :: Proxy (a -> b) -> Proxy a) p)
-        : argTypesOf ((reproxy :: Proxy (a -> b) -> Proxy b) p)
+        = ffiTypeOf_ ((const Nothing :: p (a -> b) -> Maybe a) p)
+        : argTypesOf ((const Nothing :: p (a -> b) -> Maybe b) p)
 
 newtype CIF a = CIF SomeCIF
     deriving (Eq, Ord, Show)
@@ -111,11 +110,7 @@ cif = cifWithABI defaultABI
 cifWithABI :: SigType t => ABI -> CIF t
 cifWithABI abi = theCIF
     where
-        toProxy :: p a -> Proxy a
-        toProxy _ = Proxy
-        
-        theCIF = CIF (getCIF abi (retTypeOf theProxy) (argTypesOf theProxy))
-        theProxy = toProxy theCIF
+        theCIF = CIF (getCIF abi (retTypeOf theCIF) (argTypesOf theCIF))
 
 foreign import ccall ffi_call :: CIF a -> FunPtr a -> Ptr (SigReturn a) -> Ptr (Ptr ()) -> IO ()
 
