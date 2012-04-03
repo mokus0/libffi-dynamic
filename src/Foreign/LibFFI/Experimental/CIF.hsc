@@ -10,6 +10,7 @@ module Foreign.LibFFI.Experimental.CIF
     , getCIF
     
     , CIF(..)
+    , toSomeCIF
     , cif
     , cifWithABI
     
@@ -18,6 +19,7 @@ module Foreign.LibFFI.Experimental.CIF
     , argTypes, nArgs
     
     , SigType, SigReturn
+    , retTypeOf, argTypesOf
     , ffi_call, call, callWithABI
     ) where
 
@@ -84,25 +86,34 @@ getCIF abi retType argTypes = intern (Sig abi retType argTypes)
 class SigType t where
     type SigReturn t
     
-    retTypeOf  :: p t ->  SomeType
-    argTypesOf :: p t -> [SomeType]
+    retTypeOf'  :: p t ->  SomeType
+    argTypesOf' :: p t -> [SomeType]
+
+retTypeOf :: SigType t => p t -> SomeType
+retTypeOf = retTypeOf'
+
+argTypesOf :: SigType t => p t -> [SomeType]
+argTypesOf = argTypesOf'
 
 instance RetType t => SigType (IO t) where
     type SigReturn (IO t) = t
     
-    retTypeOf = ffiTypeOf_ . (const Nothing :: p (IO b) -> Maybe b)
-    argTypesOf _ = []
+    retTypeOf' = ffiTypeOf_ . (const Nothing :: p (IO b) -> Maybe b)
+    argTypesOf' _ = []
 
 instance (ArgType a, SigType b) => SigType (a -> b) where
     type SigReturn (a -> b) = SigReturn b
     
-    retTypeOf = retTypeOf . (const Nothing :: p (a -> b) -> Maybe b)
-    argTypesOf p
+    retTypeOf' = retTypeOf . (const Nothing :: p (a -> b) -> Maybe b)
+    argTypesOf' p
         = ffiTypeOf_ ((const Nothing :: p (a -> b) -> Maybe a) p)
         : argTypesOf ((const Nothing :: p (a -> b) -> Maybe b) p)
 
 newtype CIF a = CIF SomeCIF
     deriving (Eq, Ord, Show)
+
+toSomeCIF :: CIF a -> SomeCIF
+toSomeCIF (CIF c) = c
 
 cif :: SigType t => CIF t
 cif = cifWithABI defaultABI
