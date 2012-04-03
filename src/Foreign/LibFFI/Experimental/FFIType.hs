@@ -1,5 +1,7 @@
 {-# LANGUAGE DefaultSignatures #-}
+{-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE StandaloneDeriving #-}
 module Foreign.LibFFI.Experimental.FFIType where
 
 import Data.Functor.Contravariant
@@ -135,7 +137,6 @@ instance FFIType Int64 where ffiType = sint64
 instance ArgType Int64
 instance RetType Int64
 
--- TODO: check target word size
 instance FFIType Word where ffiType = uint
 instance ArgType Word
 instance RetType Word
@@ -162,121 +163,105 @@ instance FFIType Word64 where ffiType = uint64
 instance ArgType Word64
 instance RetType Word64
 
-instance FFIType CChar where ffiType = sint
-instance ArgType CChar
-instance RetType CChar where
-    inRet  = inRetViaInt
-    outRet = outRetViaInt
+deriving instance FFIType CChar
+deriving instance ArgType CChar
+deriving instance RetType CChar
 
-instance FFIType CSChar where ffiType = sint
-instance ArgType CSChar
-instance RetType CSChar where
-    inRet  = inRetViaInt
-    outRet = outRetViaInt
+deriving instance FFIType CSChar
+deriving instance ArgType CSChar
+deriving instance RetType CSChar
 
-instance FFIType CUChar where ffiType = uint
-instance ArgType CUChar
-instance RetType CUChar where
-    inRet  = inRetViaWord
-    outRet = outRetViaWord
+deriving instance FFIType CUChar
+deriving instance ArgType CUChar
+deriving instance RetType CUChar
 
-instance FFIType CShort where ffiType = sint
-instance ArgType CShort
-instance RetType CShort where
-    inRet  = inRetViaInt
-    outRet = outRetViaInt
+deriving instance FFIType CShort
+deriving instance ArgType CShort
+deriving instance RetType CShort
 
-instance FFIType CUShort where ffiType = uint
-instance ArgType CUShort
-instance RetType CUShort where
-    inRet  = inRetViaWord
-    outRet = outRetViaWord
+deriving instance FFIType CUShort
+deriving instance ArgType CUShort
+deriving instance RetType CUShort
 
-instance FFIType CInt where ffiType = sint
-instance ArgType CInt
-instance RetType CInt where
-    inRet  = inRetViaInt
-    outRet = outRetViaInt
+deriving instance FFIType CInt
+deriving instance ArgType CInt
+deriving instance RetType CInt
 
-instance FFIType CUInt where ffiType = uint
-instance ArgType CUInt
-instance RetType CUInt where
-    inRet  = inRetViaWord
-    outRet = outRetViaWord
+deriving instance FFIType CUInt
+deriving instance ArgType CUInt
+deriving instance RetType CUInt
 
-instance FFIType CLong where ffiType = sint
-instance ArgType CLong
-instance RetType CLong
+deriving instance FFIType CLong
+deriving instance ArgType CLong
+deriving instance RetType CLong
 
-instance FFIType CULong where ffiType = uint
-instance ArgType CULong
-instance RetType CULong
+deriving instance FFIType CULong
+deriving instance ArgType CULong
+deriving instance RetType CULong
 
-instance FFIType CPtrdiff where ffiType = uint
-instance ArgType CPtrdiff
-instance RetType CPtrdiff
+deriving instance FFIType CPtrdiff
+deriving instance ArgType CPtrdiff
+deriving instance RetType CPtrdiff
 
-instance FFIType CSize where ffiType = uint
-instance ArgType CSize
-instance RetType CSize
+deriving instance FFIType CSize
+deriving instance ArgType CSize
+deriving instance RetType CSize
 
-instance FFIType CWchar where ffiType = sint
-instance ArgType CWchar
-instance RetType CWchar where
-    inRet  = inRetViaInt
-    outRet = outRetViaInt
+deriving instance FFIType CWchar
+deriving instance ArgType CWchar
+deriving instance RetType CWchar
 
-instance FFIType CSigAtomic where ffiType = sint
-instance ArgType CSigAtomic
-instance RetType CSigAtomic
+deriving instance FFIType CSigAtomic
+deriving instance ArgType CSigAtomic
+deriving instance RetType CSigAtomic
 
-instance FFIType CLLong where ffiType = sint
-instance ArgType CLLong
-instance RetType CLLong
+deriving instance FFIType CLLong
+deriving instance ArgType CLLong
+deriving instance RetType CLLong
 
-instance FFIType CULLong where ffiType = uint
-instance ArgType CULLong
-instance RetType CULLong
+deriving instance FFIType CULLong
+deriving instance ArgType CULLong
+deriving instance RetType CULLong
 
-instance FFIType CIntPtr where ffiType = sint
-instance ArgType CIntPtr
-instance RetType CIntPtr
+deriving instance FFIType CIntPtr
+deriving instance ArgType CIntPtr
+deriving instance RetType CIntPtr
 
-instance FFIType CUIntPtr where ffiType = uint
-instance ArgType CUIntPtr
-instance RetType CUIntPtr
+deriving instance FFIType CUIntPtr
+deriving instance ArgType CUIntPtr
+deriving instance RetType CUIntPtr
 
-instance FFIType CIntMax where ffiType = sint
-instance ArgType CIntMax
-instance RetType CIntMax
+deriving instance FFIType CIntMax
+deriving instance ArgType CIntMax
+deriving instance RetType CIntMax
 
-instance FFIType CUIntMax where ffiType = uint
-instance ArgType CUIntMax
-instance RetType CUIntMax
+deriving instance FFIType CUIntMax
+deriving instance ArgType CUIntMax
+deriving instance RetType CUIntMax
 
-instance FFIType CClock where ffiType = sint
-instance ArgType CClock
-instance RetType CClock
+deriving instance FFIType CClock
+deriving instance ArgType CClock
+deriving instance RetType CClock
 
-instance FFIType CTime where ffiType = sint
-instance ArgType CTime
-instance RetType CTime
+deriving instance FFIType CTime
+deriving instance ArgType CTime
+deriving instance RetType CTime
 
-instance FFIType CUSeconds where ffiType = uint
-instance ArgType CUSeconds
-instance RetType CUSeconds
+deriving instance FFIType CUSeconds
+deriving instance ArgType CUSeconds
+deriving instance RetType CUSeconds
 
-instance FFIType CSUSeconds where ffiType = sint
-instance ArgType CSUSeconds
-instance RetType CSUSeconds
+deriving instance FFIType CSUSeconds
+deriving instance ArgType CSUSeconds
+deriving instance RetType CSUSeconds
 
-instance FFIType CFloat where ffiType = floating
-instance ArgType CFloat
-instance RetType CFloat
+deriving instance FFIType CFloat
+deriving instance ArgType CFloat
+deriving instance RetType CFloat
 
-instance FFIType CDouble where ffiType = floating
-instance ArgType CDouble
-instance RetType CDouble
+deriving instance FFIType CDouble
+deriving instance ArgType CDouble
+deriving instance RetType CDouble
 
 outByRef :: OutArg a b -> OutArg (Ptr a) b
 outByRef arg = composeOutArgs arg outArg
