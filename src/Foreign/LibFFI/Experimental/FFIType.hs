@@ -4,7 +4,6 @@ module Foreign.LibFFI.Experimental.FFIType where
 
 import Data.Functor.Contravariant
 import Data.Int
-import Data.Proxy
 import Data.Word
 import Foreign.C
 import Foreign.LibFFI.Experimental.Type
@@ -290,8 +289,8 @@ instance (FFIType a, FFIType b)
     ffiType = t
         where
             t = Type $ struct
-                [ ffiTypeOf_ ((const Proxy :: Type (a,b) -> Proxy a) t)
-                , ffiTypeOf_ ((const Proxy :: Type (a,b) -> Proxy b) t)
+                [ ffiTypeOf_ ((castType :: Type (a,b) -> Type a) t)
+                , ffiTypeOf_ ((castType :: Type (a,b) -> Type b) t)
                 ]
 
 instance (FFIType a, FFIType b, FFIType c) 
@@ -299,9 +298,9 @@ instance (FFIType a, FFIType b, FFIType c)
     ffiType = t
         where
             t = Type $ struct
-                [ ffiTypeOf_ ((const Proxy :: Type (a,b,c) -> Proxy a) t)
-                , ffiTypeOf_ ((const Proxy :: Type (a,b,c) -> Proxy b) t)
-                , ffiTypeOf_ ((const Proxy :: Type (a,b,c) -> Proxy c) t)
+                [ ffiTypeOf_ ((castType :: Type (a,b,c) -> Type a) t)
+                , ffiTypeOf_ ((castType :: Type (a,b,c) -> Type b) t)
+                , ffiTypeOf_ ((castType :: Type (a,b,c) -> Type c) t)
                 ]
 
 instance (FFIType a, FFIType b, FFIType c, FFIType d) 
@@ -309,10 +308,10 @@ instance (FFIType a, FFIType b, FFIType c, FFIType d)
     ffiType = t
         where
             t = Type $ struct
-                [ ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy a) t)
-                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy b) t)
-                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy c) t)
-                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d) -> Proxy d) t)
+                [ ffiTypeOf_ ((castType :: Type (a,b,c,d) -> Type a) t)
+                , ffiTypeOf_ ((castType :: Type (a,b,c,d) -> Type b) t)
+                , ffiTypeOf_ ((castType :: Type (a,b,c,d) -> Type c) t)
+                , ffiTypeOf_ ((castType :: Type (a,b,c,d) -> Type d) t)
                 ]
 
 instance (FFIType a, FFIType b, FFIType c, FFIType d, FFIType e)
@@ -320,9 +319,9 @@ instance (FFIType a, FFIType b, FFIType c, FFIType d, FFIType e)
     ffiType = t
         where
             t = Type $ struct
-                [ ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy a) t)
-                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy b) t)
-                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy c) t)
-                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy d) t)
-                , ffiTypeOf_ ((const Proxy :: Type (a,b,c,d,e) -> Proxy e) t)
+                [ ffiTypeOf_ ((castType :: Type (a,b,c,d,e) -> Type a) t)
+                , ffiTypeOf_ ((castType :: Type (a,b,c,d,e) -> Type b) t)
+                , ffiTypeOf_ ((castType :: Type (a,b,c,d,e) -> Type c) t)
+                , ffiTypeOf_ ((castType :: Type (a,b,c,d,e) -> Type d) t)
+                , ffiTypeOf_ ((castType :: Type (a,b,c,d,e) -> Type e) t)
                 ]
