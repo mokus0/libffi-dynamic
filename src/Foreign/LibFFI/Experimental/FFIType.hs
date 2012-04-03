@@ -85,38 +85,30 @@ class FFIType a => RetType a where
     default outRet :: Storable (Returned a) => OutRet a a
     outRet = OutRet $ \x p -> poke p . toReturned =<< x
 
-instance FFIType () where
-    ffiType = void
+instance FFIType () where ffiType = void
 instance RetType () where
     inRet = InRet $ \action -> do
         action nullPtr
         return ()
     outRet = OutRet const
 
-instance FFIType (Ptr a) where
-    ffiType = pointer
+instance FFIType (Ptr a) where ffiType = pointer
 instance ArgType (Ptr a)
 instance RetType (Ptr a)
 
-instance FFIType (FunPtr a) where
-    ffiType = castType pointer
+instance FFIType (FunPtr a) where ffiType = castType pointer
 instance ArgType (FunPtr a)
 instance RetType (FunPtr a)
 
-instance FFIType Float where
-    ffiType = float
+instance FFIType Float where ffiType = floating
 instance ArgType Float
 instance RetType Float
 
-instance FFIType Double where
-    ffiType = double
+instance FFIType Double where ffiType = floating
 instance ArgType Double
 instance RetType Double
 
--- TODO: detect int/word size
--- TODO: Foreign.C.Types
-instance FFIType Int where
-    ffiType = castType sint64
+instance FFIType Int where ffiType = sint
 instance ArgType Int
 instance RetType Int
 
@@ -144,14 +136,12 @@ instance FFIType Int32 where
 instance ArgType Int32
 instance RetType Int32
 
-instance FFIType Int64 where
-    ffiType = sint64
+instance FFIType Int64 where ffiType = sint64
 instance ArgType Int64
 instance RetType Int64
 
 -- TODO: check target word size
-instance FFIType Word where
-    ffiType = castType uint64
+instance FFIType Word where ffiType = uint
 instance ArgType Word
 instance RetType Word
 
@@ -179,10 +169,143 @@ instance FFIType Word32 where
 instance ArgType Word32
 instance RetType Word32
 
-instance FFIType Word64 where
-    ffiType = uint64
+instance FFIType Word64 where ffiType = uint64
 instance ArgType Word64
 instance RetType Word64
+
+instance FFIType CChar where
+    ffiType = sint
+    type Returned CChar = Int
+    toReturned   = fromIntegral
+    fromReturned = fromIntegral
+instance ArgType CChar
+instance RetType CChar
+
+instance FFIType CSChar where
+    ffiType = sint
+    type Returned CSChar = Int
+    toReturned   = fromIntegral
+    fromReturned = fromIntegral
+instance ArgType CSChar
+instance RetType CSChar
+
+instance FFIType CUChar where
+    ffiType = uint
+    type Returned CUChar = Word
+    toReturned   = fromIntegral
+    fromReturned = fromIntegral
+instance ArgType CUChar
+instance RetType CUChar
+
+instance FFIType CShort where
+    ffiType = sint
+    type Returned CShort = Int
+    toReturned   = fromIntegral
+    fromReturned = fromIntegral
+instance ArgType CShort
+instance RetType CShort
+
+instance FFIType CUShort where
+    ffiType = uint
+    type Returned CUShort = Int
+    toReturned   = fromIntegral
+    fromReturned = fromIntegral
+instance ArgType CUShort
+instance RetType CUShort
+
+instance FFIType CInt where
+    ffiType = sint
+    type Returned CInt = Int
+    toReturned   = fromIntegral
+    fromReturned = fromIntegral
+instance ArgType CInt
+instance RetType CInt
+
+instance FFIType CUInt where
+    ffiType = uint
+    type Returned CUInt = Word
+    toReturned   = fromIntegral
+    fromReturned = fromIntegral
+instance ArgType CUInt
+instance RetType CUInt
+
+instance FFIType CLong where ffiType = sint
+instance ArgType CLong
+instance RetType CLong
+
+instance FFIType CULong where ffiType = uint
+instance ArgType CULong
+instance RetType CULong
+
+instance FFIType CPtrdiff where ffiType = uint
+instance ArgType CPtrdiff
+instance RetType CPtrdiff
+
+instance FFIType CSize where ffiType = uint
+instance ArgType CSize
+instance RetType CSize
+
+instance FFIType CWchar where
+    ffiType = sint
+    type Returned CWchar = Int
+    toReturned   = fromIntegral
+    fromReturned = fromIntegral
+instance ArgType CWchar
+instance RetType CWchar
+
+instance FFIType CSigAtomic where ffiType = sint
+instance ArgType CSigAtomic
+instance RetType CSigAtomic
+
+instance FFIType CLLong where ffiType = sint
+instance ArgType CLLong
+instance RetType CLLong
+
+instance FFIType CULLong where ffiType = uint
+instance ArgType CULLong
+instance RetType CULLong
+
+instance FFIType CIntPtr where ffiType = sint
+instance ArgType CIntPtr
+instance RetType CIntPtr
+
+instance FFIType CUIntPtr where ffiType = uint
+instance ArgType CUIntPtr
+instance RetType CUIntPtr
+
+instance FFIType CIntMax where ffiType = sint
+instance ArgType CIntMax
+instance RetType CIntMax
+
+instance FFIType CUIntMax where ffiType = uint
+instance ArgType CUIntMax
+instance RetType CUIntMax
+
+instance FFIType CClock where ffiType = sint
+instance ArgType CClock
+instance RetType CClock
+
+instance FFIType CTime where ffiType = sint
+instance ArgType CTime
+instance RetType CTime
+
+instance FFIType CUSeconds where ffiType = uint
+instance ArgType CUSeconds
+instance RetType CUSeconds
+
+instance FFIType CSUSeconds where ffiType = sint
+instance ArgType CSUSeconds
+instance RetType CSUSeconds
+
+instance FFIType CFloat where ffiType = floating
+instance ArgType CFloat
+instance RetType CFloat
+
+instance FFIType CDouble where ffiType = floating
+instance ArgType CDouble
+instance RetType CDouble
+
+
 
 outByRef :: OutArg a b -> OutArg (Ptr a) b
 outByRef arg = composeOutArgs arg outArg

@@ -8,11 +8,17 @@ module Foreign.LibFFI.Experimental.Type
     
     , void
     , pointer
-    , float, double
-    , sint8, sint16, sint32, sint64
-    , uint8, uint16, uint32, uint64
+    , float, double, longdouble, floating
+    , sint8, sint16, sint32, sint64, sint
+    , uint8, uint16, uint32, uint64, uint
     , struct
+    
+    , typeIsStruct
     , structElements
+    
+    , TypeDescription(..)
+    , describeType
+    , getType
     ) where
 
 import Data.Hashable
@@ -25,6 +31,8 @@ import Foreign.Marshal hiding (void)
 import Foreign.Ptr
 import Foreign.Storable
 import System.IO.Unsafe
+
+#include <ffi.h>
 
 newtype SomeType = SomeType (Ptr SomeType) deriving (Eq, Ord, Show, Storable)
 instance Hashable SomeType where
@@ -39,23 +47,54 @@ toSomeType (Type t) = t
 castType :: Type a -> Type b
 castType (Type t) = Type t
 
-#include <ffi.h>
+sizeOf1 :: Storable a => p a -> Int
+sizeOf1 = sizeOf . (undefined :: p a -> a)
 
 foreign import ccall "&ffi_type_void"    void    :: Type ()
 foreign import ccall "&ffi_type_pointer" pointer :: Type (Ptr a)
 
-foreign import ccall "&ffi_type_float"  float  :: Type Float
-foreign import ccall "&ffi_type_double" double :: Type Double
+foreign import ccall "&ffi_type_float"      float  :: Type Float
+foreign import ccall "&ffi_type_double"     double :: Type Double
+foreign import ccall "&ffi_type_longdouble" longdouble :: Type Double
+
+floating :: Storable a => Type a
+floating = t
+    where
+        t = case sizeOf1 t of
+            4 -> castType float
+            8 -> castType double
+            (#const sizeof(long double)) -> castType longdouble
+            _ -> error "floating: invalid size for floating point type"
 
 foreign import ccall "&ffi_type_sint8"  sint8  :: Type Int8
 foreign import ccall "&ffi_type_sint16" sint16 :: Type Int16
 foreign import ccall "&ffi_type_sint32" sint32 :: Type Int32
 foreign import ccall "&ffi_type_sint64" sint64 :: Type Int64
 
+sint :: Storable a => Type a
+sint = t
+    where
+        t = case sizeOf1 t of
+            1 -> castType sint8
+            2 -> castType sint16
+            4 -> castType sint32
+            8 -> castType sint64
+            _ -> error "sint: invalid size for signed int type"
+
 foreign import ccall "&ffi_type_uint8"  uint8  :: Type Word8
 foreign import ccall "&ffi_type_uint16" uint16 :: Type Word16
 foreign import ccall "&ffi_type_uint32" uint32 :: Type Word32
 foreign import ccall "&ffi_type_uint64" uint64 :: Type Word64
+
+uint :: Storable a => Type a
+uint = t
+    where
+        t = case sizeOf1 t of
+            1 -> castType uint8
+            2 -> castType uint16
+            4 -> castType uint32
+            8 -> castType uint64
+            _ -> error "uint: invalid size for unsigned int type"
 
 typeIsStruct :: SomeType -> Bool
 typeIsStruct (SomeType p) = unsafePerformIO $ do
@@ -86,30 +125,44 @@ mkStruct ts = do
     
     return (SomeType t)
 
-newtype Struct = Struct {structType :: SomeType}
+newtype StructType = StructType {structType :: SomeType}
     deriving (Eq, Ord, Show)
 
-instance Interned Struct where
-    data Description Struct = StructElems [SomeType]
+instance Interned StructType where
+    data Description StructType = StructElems [SomeType]
         deriving (Eq, Ord, Show)
     
-    type Uninterned Struct = [SomeType]
+    type Uninterned StructType = [SomeType]
     
     describe = StructElems
-    identify _ = Struct . unsafePerformIO . mkStruct
+    identify _ = StructType . unsafePerformIO . mkStruct
     
-    cache = structCache
+    cache = structTypeCache
 
-instance Uninternable Struct where
-    unintern (Struct t) = structElements t
+instance Uninternable StructType where
+    unintern (StructType t) = structElements t
 
-{-# NOINLINE structCache #-}
-structCache :: Cache Struct
-structCache = mkCache
+{-# NOINLINE structTypeCache #-}
+structTypeCache :: Cache StructType
+structTypeCache = mkCache
 
-instance Hashable (Description Struct) where
+instance Hashable (Description StructType) where
     hashWithSalt salt (StructElems ts) = foldl' (\s -> hashWithSalt s . f) salt ts
         where f (SomeType t) = fromIntegral (ptrToIntPtr t) :: Int
 
 struct :: [SomeType] -> SomeType
 struct = structType . intern
+
+data TypeDescription
+    = Prim SomeType
+    | Struct [TypeDescription]
+    deriving (Eq, Ord, Show)
+
+describeType :: SomeType -> TypeDescription
+describeType t
+    | typeIsStruct t    = Struct (map describeType (structElements t))
+    | otherwise         = Prim t
+
+getType :: TypeDescription -> SomeType
+getType (Prim t)    = t
+getType (Struct ts) = struct (map getType ts)
