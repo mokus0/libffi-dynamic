@@ -22,12 +22,15 @@ ffiTypeOf = const ffiType
 ffiTypeOf_ :: FFIType a => p a -> SomeType 
 ffiTypeOf_ = toSomeType . ffiTypeOf
 
-newtype InArg a b = InArg { withInArg :: forall t. Ptr a -> (b -> IO t) -> IO t }
+newtype InArg a b = InArg { peekArg :: Ptr a -> IO b }
 instance Functor (InArg a) where
-    fmap f (InArg g) = InArg (\p k -> g p (k . f))
+    fmap f arg = InArg (fmap f . peekArg arg)
 
 castInArg :: InArg a c -> InArg b c
-castInArg (InArg f) = InArg (f . castPtr)
+castInArg arg = InArg (peekArg arg . castPtr)
+
+withInArg :: InArg a b -> Ptr a -> (b -> IO t) -> IO t
+withInArg arg p action = peekArg arg p >>= action
 
 newtype OutArg a b = OutArg { withOutArg :: forall t. b -> (Ptr a -> IO t) -> IO t }
 instance Contravariant (OutArg a) where
@@ -37,7 +40,7 @@ castOutArg :: OutArg a c -> OutArg b c
 castOutArg (OutArg f) = OutArg (\x k -> f x (k . castPtr))
 
 composeInArgs :: InArg a (Ptr b) -> InArg b c -> InArg a c
-composeInArgs f g = InArg $ \p -> withInArg f p . flip (withInArg g)
+composeInArgs arg1 arg2 = InArg $ \p -> peekArg arg1 p >>=  peekArg arg2
 
 composeOutArgs :: OutArg b c -> OutArg a (Ptr b) -> OutArg a c
 composeOutArgs f g = OutArg $ \x -> withOutArg f x . flip (withOutArg g)
@@ -45,45 +48,52 @@ composeOutArgs f g = OutArg $ \x -> withOutArg f x . flip (withOutArg g)
 class FFIType a => ArgType a where
     inArg :: InArg a a
     default inArg :: Storable a => InArg a a
-    inArg = InArg $ \p k -> peek p >>= k
+    inArg = InArg peek
     
     outArg :: OutArg a a
     default outArg :: Storable a => OutArg a a
     outArg = OutArg with
 
-newtype InRet a b = InRet
-    { withInRet :: forall t. (Ptr a -> IO t) -> IO b }
+data InRet a b = InRet
+    { allocaRet :: !(forall t. (Ptr a -> IO t) -> IO t)
+    , peekRet   :: !(Ptr a -> IO b)
+    }
 instance Functor (InRet a) where
-    fmap f ret = InRet (fmap f . withInRet ret)
+    fmap f ret = ret { peekRet = fmap f . peekRet ret }
 
 castInRet :: InRet a c -> InRet b c
-castInRet (InRet f) = InRet (\k -> f (k . castPtr))
+castInRet ret = InRet
+    { allocaRet = \k -> allocaRet ret (k . castPtr)
+    , peekRet = peekRet ret . castPtr
+    }
 
-newtype OutRet a b = OutRet { withOutRet :: IO b -> Ptr a -> IO () }
+withInRet :: InRet a b -> (Ptr a -> IO t) -> IO b
+withInRet ret action = allocaRet ret $ \p -> do
+    action p
+    peekRet ret p
+
+-- OutRet does not need alloc operation because allocation
+-- is done by libffi's generated wrappers.
+newtype OutRet a b = OutRet { pokeRet :: Ptr a -> b -> IO () }
 instance Contravariant (OutRet a) where
-    contramap f arg = OutRet (withOutRet arg . fmap f)
+    contramap f ret = OutRet (\p -> pokeRet ret p . f)
 
 castOutRet :: OutRet a c -> OutRet b c
-castOutRet (OutRet f) = OutRet (\x -> f x . castPtr)
+castOutRet ret = OutRet (pokeRet ret . castPtr)
 
 class FFIType a => RetType a where
     inRet  :: InRet a a
     default inRet :: Storable a => InRet a a
-    inRet = InRet $ \action ->
-        alloca $ \p -> do
-            action p
-            peek p
+    inRet = InRet alloca peek
     
     outRet :: OutRet a a
     default outRet :: Storable a => OutRet a a
-    outRet = OutRet $ \x p -> poke p =<< x
+    outRet = OutRet poke
 
 instance FFIType () where ffiType = void
 instance RetType () where
-    inRet = InRet $ \action -> do
-        action nullPtr
-        return ()
-    outRet = OutRet const
+    inRet = InRet ($ nullPtr) (\_ -> return ())
+    outRet = OutRet (\_ _ -> return ())
 
 instance FFIType (Ptr a) where ffiType = pointer
 instance ArgType (Ptr a)

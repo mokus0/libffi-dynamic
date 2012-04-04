@@ -25,7 +25,7 @@ newtype Dyn a b = Dyn
 mkDyn :: InRet a b -> Dyn (IO a) (IO b)
 mkDyn ret = Dyn 
     { prepDynamic = \call _ -> return $ \withArgs ->
-        withInRet ret (withArgs . call . castPtr)
+        withInRet ret (withArgs . call)
     }
 
 consDyn :: OutArg a b -> Dyn c d -> Dyn (a -> c) (b -> d)

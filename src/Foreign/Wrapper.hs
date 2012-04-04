@@ -21,7 +21,7 @@ newtype Wrap a b = Wrap
 
 mkWrap :: OutRet a b -> Wrap (IO b) (IO a)
 mkWrap ret = Wrap
-    { prepWrapper = return $ \fun -> const (withOutRet ret fun . castPtr)
+    { prepWrapper = return $ \fun _ p -> fun >>= pokeRet ret (castPtr p)
     }
 
 consWrap :: InArg a b -> Wrap c d -> Wrap (b -> c) (a -> d)
