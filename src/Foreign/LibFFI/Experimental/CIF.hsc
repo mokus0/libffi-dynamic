@@ -96,13 +96,13 @@ retTypeOf = retTypeOf'
 argTypesOf :: SigType t => p t -> [SomeType]
 argTypesOf = argTypesOf'
 
-instance RetType t => SigType (IO t) where
+instance FFIType t => SigType (IO t) where
     type SigReturn (IO t) = t
     
     retTypeOf' = ffiTypeOf_ . (const Nothing :: p (IO b) -> Maybe b)
     argTypesOf' _ = []
 
-instance (ArgType a, SigType b) => SigType (a -> b) where
+instance (FFIType a, SigType b) => SigType (a -> b) where
     type SigReturn (a -> b) = SigReturn b
     
     retTypeOf' = retTypeOf . (const Nothing :: p (a -> b) -> Maybe b)
