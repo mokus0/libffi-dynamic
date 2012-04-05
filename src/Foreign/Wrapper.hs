@@ -1,8 +1,9 @@
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE BangPatterns #-}
 module Foreign.Wrapper
     ( Wrap, mkWrap, consWrap
     , exportWrap
     , exportWrapWithABI
+    , exportWrapWithCIF
     
     , Wrapper, wrap, wrapper
     ) where
@@ -42,12 +43,10 @@ exportWrap :: SigType b => Wrap a b -> a -> IO (FunPtr b)
 exportWrap = exportWrapWithABI defaultABI
 
 exportWrapWithABI :: SigType b => ABI -> Wrap a b -> a -> IO (FunPtr b)
-exportWrapWithABI abi wrap fun = do
-    let asWrappedTypeOf :: CIF b -> Wrap a b -> CIF b
-        asWrappedTypeOf = const 
-        
-        cif = cifWithABI abi `asWrappedTypeOf` wrap
-    
+exportWrapWithABI = exportWrapWithCIF . cifWithABI
+
+exportWrapWithCIF :: CIF b -> Wrap a b -> a -> IO (FunPtr b)
+exportWrapWithCIF !cif !wrap !fun = do
     wrap <- prepWrapper wrap
     impl <- wrap_FFI_Impl $ \_ ret args _ -> wrap fun args ret
     

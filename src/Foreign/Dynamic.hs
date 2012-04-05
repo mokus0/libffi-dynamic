@@ -1,9 +1,9 @@
-{-# LANGUAGE TypeFamilies #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE BangPatterns #-}
 module Foreign.Dynamic
     ( Dyn, mkDyn, consDyn
     , importDyn
     , importDynWithABI
+    , importDynWithCIF
     
     , Dynamic, dynamic, dyn
     ) where
@@ -41,12 +41,14 @@ consDyn arg dyn = dyn
     }
 
 importDyn :: SigType a => Dyn a b -> FunPtr a -> IO b
-importDyn = importDynWithABI defaultABI
+importDyn = importDynWithCIF cif
 
 importDynWithABI :: SigType a => ABI -> Dyn a b -> FunPtr a -> IO b
-importDynWithABI abi dyn fun = do
-    let theCIF = cifWithABI abi
-        n = nArgs (toSomeCIF theCIF)
+importDynWithABI = importDynWithCIF . cifWithABI
+
+importDynWithCIF :: CIF a -> Dyn a b -> FunPtr a -> IO b
+importDynWithCIF !theCIF !dyn !fun = do
+    let n = nArgs (toSomeCIF theCIF)
     
     dyn <- prepDynamic dyn (ffi_call theCIF fun) 0
     let withArgs = bracket (mallocArray n) free
