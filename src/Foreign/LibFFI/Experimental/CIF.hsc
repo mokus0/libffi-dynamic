@@ -17,6 +17,7 @@ module Foreign.LibFFI.Experimental.CIF
     , abi
     , retType
     , argTypes, nArgs
+    , cifFlags
     
     , SigType, SigReturn
     , retTypeOf, argTypesOf
@@ -137,21 +138,24 @@ callWithABI abi = ffi_call theCIF
         {-# NOINLINE theCIF #-}
         theCIF = cifWithABI abi
 
-abi :: CIF a -> ABI
-abi (CIF (SomeCIF p)) = unsafePerformIO $ do
+abi :: SomeCIF -> ABI
+abi (SomeCIF p) = unsafePerformIO $ do
     (#peek ffi_cif, abi) p
 
-retType :: CIF a -> SomeType
-retType (CIF (SomeCIF p)) = unsafePerformIO $ do
+retType :: SomeCIF -> SomeType
+retType (SomeCIF p) = unsafePerformIO $ do
     (#peek ffi_cif, rtype) p
 
-argTypes :: CIF a -> [SomeType]
-argTypes cif@(CIF (SomeCIF p)) = unsafePerformIO $ do
+argTypes :: SomeCIF -> [SomeType]
+argTypes cif@(SomeCIF p) = unsafePerformIO $ do
     ts <- (#peek ffi_cif, arg_types) p :: IO (Ptr SomeType)
     peekArray (nArgs cif) ts
 
-nArgs :: CIF a -> Int
-nArgs (CIF (SomeCIF p)) = unsafePerformIO $ do
+nArgs :: SomeCIF -> Int
+nArgs (SomeCIF p) = unsafePerformIO $ do
     n  <- (#peek ffi_cif, nargs) p :: IO CUInt
     return $! fromIntegral n
 
+cifFlags :: SomeCIF -> CUInt
+cifFlags (SomeCIF p) = unsafePerformIO $ do
+    (#peek ffi_cif, flags) p

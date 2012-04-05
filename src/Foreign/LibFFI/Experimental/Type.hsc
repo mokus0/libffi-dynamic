@@ -13,6 +13,9 @@ module Foreign.LibFFI.Experimental.Type
     , uint8, uint16, uint32, uint64, uint
     , struct
     
+    , typeSize
+    , typeAlignment
+    , typeType
     , typeIsStruct
     , structElements
     
@@ -96,10 +99,20 @@ uint = t
             8 -> castType uint64
             _ -> error "uint: invalid size for unsigned int type"
 
+typeSize :: SomeType -> CSize
+typeSize (SomeType p) = unsafePerformIO $
+    (#peek ffi_type, size) p
+
+typeAlignment :: SomeType -> CUShort
+typeAlignment (SomeType p) = unsafePerformIO $
+    (#peek ffi_type, alignment) p
+
+typeType :: SomeType -> CUShort
+typeType (SomeType p) = unsafePerformIO $
+    (#peek ffi_type, type) p
+
 typeIsStruct :: SomeType -> Bool
-typeIsStruct (SomeType p) = unsafePerformIO $ do
-    t <- (#peek ffi_type, type) p :: IO CShort
-    return $! t == #const FFI_TYPE_STRUCT
+typeIsStruct t = typeType t == #const FFI_TYPE_STRUCT
 
 structElements :: SomeType -> [SomeType]
 structElements st@(SomeType t)

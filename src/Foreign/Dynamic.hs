@@ -46,7 +46,7 @@ importDyn = importDynWithABI defaultABI
 importDynWithABI :: SigType a => ABI -> Dyn a b -> FunPtr a -> IO b
 importDynWithABI abi dyn fun = do
     let theCIF = cifWithABI abi
-        n = nArgs theCIF
+        n = nArgs (toSomeCIF theCIF)
     
     dyn <- prepDynamic dyn (ffi_call theCIF fun) 0
     let withArgs = bracket (mallocArray n) free
