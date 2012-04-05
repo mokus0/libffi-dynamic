@@ -21,7 +21,7 @@ module Foreign.LibFFI.Experimental.CIF
     
     , SigType, SigReturn
     , retTypeOf, argTypesOf
-    , ffi_call, call, callWithABI
+    , call, callWithABI, callWithCIF
     ) where
 
 import Control.Applicative
@@ -124,19 +124,20 @@ cifWithABI abi = theCIF
     where
         theCIF = CIF (getCIF abi (retTypeOf theCIF) (argTypesOf theCIF))
 
-foreign import ccall ffi_call :: CIF a -> FunPtr a -> Ptr (SigReturn a) -> Ptr (Ptr ()) -> IO ()
-
 call :: SigType t => FunPtr t -> Ptr (SigReturn t) -> Ptr (Ptr ()) -> IO ()
-call = ffi_call theCIF
+call = callWithCIF theCIF
     where
         {-# NOINLINE theCIF #-}
         theCIF = cif
 
 callWithABI :: SigType t => ABI -> FunPtr t -> Ptr (SigReturn t) -> Ptr (Ptr ()) -> IO ()
-callWithABI abi = ffi_call theCIF
+callWithABI abi = callWithCIF theCIF
     where 
         {-# NOINLINE theCIF #-}
         theCIF = cifWithABI abi
+
+foreign import ccall "ffi_call"
+    callWithCIF :: CIF a -> FunPtr a -> Ptr (SigReturn a) -> Ptr (Ptr ()) -> IO ()
 
 abi :: SomeCIF -> ABI
 abi (SomeCIF p) = unsafePerformIO $ do

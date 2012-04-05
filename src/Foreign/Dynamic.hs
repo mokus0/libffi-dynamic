@@ -4,6 +4,7 @@ module Foreign.Dynamic
     , importDyn
     , importDynWithABI
     , importDynWithCIF
+    , importDynWithCall
     
     , Dynamic, dynamic, dyn
     ) where
@@ -16,46 +17,45 @@ import Foreign.Ptr
 import Foreign.Storable
 
 type Call t = Ptr (SigReturn t) -> Ptr (Ptr ()) -> IO ()
-type WithArgs = (Ptr (Ptr ()) -> IO ()) -> IO ()
+type WithArgs = Int -> (Ptr (Ptr ()) -> IO ()) -> IO ()
 
 newtype Dyn a b = Dyn
-    { prepDynamic :: Call a -> Int -> IO (WithArgs -> b)
+    { prepDynamic :: Int -> WithArgs -> Call a -> b
     }
 
 mkDyn :: InRet a b -> Dyn (IO a) (IO b)
 mkDyn ret = Dyn 
-    { prepDynamic = \call _ -> return $ \withArgs ->
-        withInRet ret (withArgs . call)
+    { prepDynamic = \n withArgs call ->
+        withInRet ret (withArgs n . call)
     }
 
 consDyn :: OutArg a b -> Dyn c d -> Dyn (a -> c) (b -> d)
 consDyn arg dyn = dyn
-    { prepDynamic = \call i -> do
-        dyn <- prepDynamic dyn call (i+1)
-        return $ \withArgs x ->
-            dyn $ \action ->
+    { prepDynamic = \i withArgs call x ->
+        let withMoreArgs n action = 
                 withOutArg arg x $ \p ->
-                    withArgs $ \args -> do
+                    withArgs n $ \args -> do
                         pokeElemOff args i (castPtr p)
                         action args
+         in prepDynamic dyn (i+1) withMoreArgs call
     }
 
-importDyn :: SigType a => Dyn a b -> FunPtr a -> IO b
+importDyn :: SigType a => Dyn a b -> FunPtr a -> b
 importDyn = importDynWithCIF cif
 
-importDynWithABI :: SigType a => ABI -> Dyn a b -> FunPtr a -> IO b
+importDynWithABI :: SigType a => ABI -> Dyn a b -> FunPtr a -> b
 importDynWithABI = importDynWithCIF . cifWithABI
 
-importDynWithCIF :: CIF a -> Dyn a b -> FunPtr a -> IO b
-importDynWithCIF !theCIF !dyn !fun = do
-    let n = nArgs (toSomeCIF theCIF)
-    
-    dyn <- prepDynamic dyn (ffi_call theCIF fun) 0
-    let withArgs = bracket (mallocArray n) free
+importDynWithCIF :: CIF a -> Dyn a b -> FunPtr a -> b
+importDynWithCIF = importDynWithCall . callWithCIF
 
-    return $! dyn withArgs
+importDynWithCall :: (FunPtr a -> Ptr (SigReturn a) -> Ptr (Ptr ()) -> IO ()) -> Dyn a b -> FunPtr a -> b
+importDynWithCall !call !dyn =
+    prepDynamic dyn 0 withArgs . call
+        where
+            withArgs n = bracket (mallocArray n) free
 
-dynamic :: Dynamic a => FunPtr a -> IO a
+dynamic :: Dynamic a => FunPtr a -> a
 dynamic = importDyn stdDyn
 
 dyn :: Dynamic a => Dyn a a

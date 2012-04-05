@@ -29,14 +29,17 @@ instance FFIType Pair where
 instance ArgType Pair
 instance RetType Pair
 
-main = do
-    printf <- importDyn (stringArg `consDyn` dyn) p_printf
+printf = importDyn (stringArg `consDyn` dyn) p_printf
+printf' = importDyn (stringArg `consDyn` dyn)
+    (castFunPtr p_printf :: FunPtr (CString -> Word8 -> IO ()))
+replicateM_ = dynamic p_replicateM_
+mkPair = dynamic p_mkPair
 
+main = do
     printf "foo: %8d 0x%016lx %g\n"   42     0x0123456789abcdef  pi
     printf "bar: %-8d 0x%lx %.10a\n" (6 * 9) 0xfedcba9876543210 (exp pi - (20 + pi))
     printf "qux: %d/%d ~ %g\n" 7 22 pi
     
-    replicateM_ <- dynamic p_replicateM_
     n <- newIORef 0
     action <- wrapper $ do
         i <- readIORef n
@@ -44,10 +47,7 @@ main = do
         putStrLn (replicate i ' ' ++ "Hi!")
     
     ct <- replicateM_ 10 action
-    printf' <- importDyn (stringArg `consDyn` dyn)
-        (castFunPtr p_printf :: FunPtr (CString -> Word8 -> IO ()))
     printf' "replicateM_ returned: %hhu\n" ct
     
-    mkPair <- dynamic p_mkPair
     mkPair 12345 6.78e9 >>= print
 

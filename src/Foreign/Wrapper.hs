@@ -17,23 +17,23 @@ import Foreign.Ptr
 import Foreign.Storable
 
 newtype Wrap a b = Wrap
-    { prepWrapper :: IO (a -> Ptr (Ptr ()) -> Ptr (SigReturn b) -> IO ())
+    { prepWrapper :: a -> Ptr (Ptr ()) -> Ptr (SigReturn b) -> IO ()
     }
 
 mkWrap :: OutRet a b -> Wrap (IO b) (IO a)
 mkWrap ret = Wrap
-    { prepWrapper = return $ \fun _ p -> fun >>= pokeRet ret (castPtr p)
+    { prepWrapper = \fun _ p -> fun >>= pokeRet ret p
     }
 
 consWrap :: InArg a b -> Wrap c d -> Wrap (b -> c) (a -> d)
-consWrap p wrap = wrap
-    { prepWrapper = do
-        wrap <- prepWrapper wrap
-        return $ \fun args ret -> do
-            withInArg p (castPtr args)
-                (\arg -> wrap (fun arg)
-                              (plusPtr args (sizeOf args)) 
-                               ret)
+consWrap arg wrap = wrap
+    { prepWrapper =
+        \fun args ret ->
+            withInArg arg (castPtr args)
+                (\arg -> prepWrapper wrap
+                    (fun arg)
+                    (plusPtr args (sizeOf args)) 
+                     ret)
     }
 
 fromEntry :: Entry -> FunPtr a
@@ -47,8 +47,7 @@ exportWrapWithABI = exportWrapWithCIF . cifWithABI
 
 exportWrapWithCIF :: CIF b -> Wrap a b -> a -> IO (FunPtr b)
 exportWrapWithCIF !cif !wrap !fun = do
-    wrap <- prepWrapper wrap
-    impl <- wrap_FFI_Impl $ \_ ret args _ -> wrap fun args ret
+    impl <- wrap_FFI_Impl $ \_ ret args _ -> prepWrapper wrap fun args ret
     
     alloca $ \entryPtr -> do
         closure <- ffi_closure_alloc sizeOfClosure entryPtr
