@@ -1,6 +1,11 @@
-unsigned char replicateM_ (unsigned char n, void (*action)()) {
+#include <stdio.h>
+
+unsigned char replicateM_ (unsigned char n, int (*action)(int)) {
     unsigned char i;
-    for (i = 0; i < n; i++) action();
+    for (i = 0; i < n; i++) {
+        int j = action(i);
+        printf("i = %d, j = %d\n", i, j);
+    }
     return i;
 }
 

@@ -10,7 +10,7 @@ import Foreign.Ptr
 import Foreign.Storable
 
 foreign import ccall "&printf" p_printf :: FunPtr (CString -> Int32 -> Int64 -> Double -> IO ())
-foreign import ccall "&replicateM_" p_replicateM_ :: FunPtr (Word8 -> FunPtr (IO ()) -> IO Word8)
+foreign import ccall "&replicateM_" p_replicateM_ :: FunPtr (Word8 -> FunPtr (CInt -> IO CInt) -> IO Word8)
 foreign import ccall "&mkPair" p_mkPair :: FunPtr (Word16 -> Float -> IO Pair)
 
 data Pair = Pair Word16 Float deriving Show
@@ -40,11 +40,9 @@ main = do
     printf "bar: %-8d 0x%lx %.10a\n" (6 * 9) 0xfedcba9876543210 (exp pi - (20 + pi))
     printf "qux: %d/%d ~ %g\n" 7 22 pi
     
-    n <- newIORef 0
-    action <- wrapper $ do
-        i <- readIORef n
-        writeIORef n $! (i + 1)
-        putStrLn (replicate i ' ' ++ "Hi!")
+    action <- wrapper $ \i -> do
+        putStrLn (show i ++ ": " ++ "Hi!")
+        return (i * 2 + 1)
     
     ct <- replicateM_ 10 action
     printf' "replicateM_ returned: %hhu\n" ct
