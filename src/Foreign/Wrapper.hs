@@ -28,8 +28,9 @@ mkWrap ret = Wrap
 consWrap :: InArg a b -> Wrap c d -> Wrap (b -> c) (a -> d)
 consWrap arg wrap = wrap
     { prepWrapper =
-        \fun args ret ->
-            withInArg arg (castPtr args)
+        \fun args ret -> do
+            arg0 <- peek args
+            withInArg arg (castPtr arg0)
                 (\arg -> prepWrapper wrap
                     (fun arg)
                     (plusPtr args (sizeOf args)) 
