@@ -30,3 +30,18 @@ Library
                         hashable,
                         intern
   extra-libraries:      ffi
+  
+  -- Custom build of libffi's closure allocator, so we can use
+  -- ffi_closure_free on code pointers.
+  -- also, GHC's ffi_closure_alloc just doesn't work on Mac OS
+  -- anyway because it appears to be build without FFI_MMAP_EXEC_WRIT.
+  c-sources:            cbits/closures.c
+  cc-options:           -DFFI_CLOSURES=1
+                        -DFFI_MMAP_EXEC_WRIT=1
+                        -DMAYBE_UNUSED=
+                        -DFFI_CLOSURE_FREE_CODE=1
+                        -Dffi_closure_alloc=hs_ffi_closure_alloc
+                        -Dffi_closure_free=hs_ffi_closure_free
+  
+  include-dirs:         include
+  install-includes:     hs_libffi_closure.h
