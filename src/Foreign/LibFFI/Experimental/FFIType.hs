@@ -11,6 +11,7 @@ import Foreign.C
 import Foreign.LibFFI.Experimental.Type
 import Foreign.Marshal hiding (void)
 import Foreign.Ptr
+import Foreign.StablePtr
 import Foreign.Storable
 
 class FFIType a where
@@ -102,6 +103,10 @@ instance RetType (Ptr a)
 instance FFIType (FunPtr a) where ffiType = castType pointer
 instance ArgType (FunPtr a)
 instance RetType (FunPtr a)
+
+instance FFIType (StablePtr a) where ffiType = castType pointer
+instance ArgType (StablePtr a)
+instance RetType (StablePtr a)
 
 instance FFIType Float where ffiType = floating
 instance ArgType Float
