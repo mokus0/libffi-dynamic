@@ -29,6 +29,8 @@ mkDyn ret = Dyn
         withInRet ret (withArgs n . call)
     }
 
+infixr 5 `consDyn`
+
 consDyn :: OutArg a b -> Dyn c d -> Dyn (a -> c) (b -> d)
 consDyn arg dyn = dyn
     { prepDynamic = \i withArgs call x ->

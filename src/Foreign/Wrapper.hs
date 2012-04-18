@@ -25,6 +25,8 @@ mkWrap ret = Wrap
     { prepWrapper = \fun _ p -> fun >>= pokeRet ret p
     }
 
+infixr 5 `consWrap`
+
 consWrap :: InArg a b -> Wrap c d -> Wrap (b -> c) (a -> d)
 consWrap arg wrap = wrap
     { prepWrapper =
