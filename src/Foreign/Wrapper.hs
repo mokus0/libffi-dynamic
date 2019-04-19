@@ -8,10 +8,10 @@ module Foreign.Wrapper
     , Wrapper, wrap, wrapper
     ) where
 
-import Foreign.LibFFI.Experimental.Base
-import Foreign.LibFFI.Experimental.CIF
-import Foreign.LibFFI.Experimental.Closure
-import Foreign.LibFFI.Experimental.FFIType
+import Foreign.LibFFI.Dynamic.Base
+import Foreign.LibFFI.Dynamic.CIF
+import Foreign.LibFFI.Dynamic.Closure
+import Foreign.LibFFI.Dynamic.FFIType
 import Foreign.Marshal
 import Foreign.Ptr
 import Foreign.Storable

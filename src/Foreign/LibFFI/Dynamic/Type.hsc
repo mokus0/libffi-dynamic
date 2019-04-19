@@ -2,7 +2,7 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
-module Foreign.LibFFI.Experimental.Type
+module Foreign.LibFFI.Dynamic.Type
     ( SomeType(..), Type(..)
     , toSomeType, castType
     

@@ -1,10 +1,10 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
-module Foreign.LibFFI.Experimental.Closure where
+module Foreign.LibFFI.Dynamic.Closure where
 
 import Foreign.C.Types
-import Foreign.LibFFI.Experimental.Base
-import Foreign.LibFFI.Experimental.CIF
+import Foreign.LibFFI.Dynamic.Base
+import Foreign.LibFFI.Dynamic.CIF
 import Foreign.Ptr
 import Foreign.Storable
 

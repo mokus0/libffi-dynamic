@@ -1,4 +1,4 @@
-name:                   libffi-experiments
+name:                   libffi-dynamic
 version:                0.0.0.1
 stability:              experimental
 
@@ -10,24 +10,27 @@ maintainer:             James Cook <mokus@deepbondi.net>
 license:                PublicDomain
 homepage:               /dev/null
 
-category:               Unclassified
-synopsis:               I'm too lame to describe my project
-description:            I'm too lame to describe my project
+category:               Foreign
+synopsis:               LibFFI interface with dynamic bidirectional
+                        type-driven binding generation
+description:            LibFFI interface with support for importing and
+                        exporting function types inferred at compile time,
+                        constructed at runtime, or a combination of both.
 
 source-repository head
   type: git
-  location: git://github.com/mokus0/libffi.git
+  location: git://github.com/mokus0/libffi-dynamic.git
 
 Library
   hs-source-dirs:       src
   exposed-modules:      Foreign.Dynamic
                         Foreign.Wrapper
-                        Foreign.LibFFI.Experimental
-                        Foreign.LibFFI.Experimental.Base
-                        Foreign.LibFFI.Experimental.CIF
-                        Foreign.LibFFI.Experimental.Closure
-                        Foreign.LibFFI.Experimental.FFIType
-                        Foreign.LibFFI.Experimental.Type
+                        Foreign.LibFFI.Dynamic
+                        Foreign.LibFFI.Dynamic.Base
+                        Foreign.LibFFI.Dynamic.CIF
+                        Foreign.LibFFI.Dynamic.Closure
+                        Foreign.LibFFI.Dynamic.FFIType
+                        Foreign.LibFFI.Dynamic.Type
   ghc-options:          -fwarn-unused-binds -fwarn-unused-imports
   build-depends:        base >= 3 && < 5,
                         contravariant,

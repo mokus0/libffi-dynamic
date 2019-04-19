@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE TypeFamilies #-}
-module Foreign.LibFFI.Experimental.CIF
+module Foreign.LibFFI.Dynamic.CIF
     ( ABI(..)
     , defaultABI
     
@@ -28,9 +28,9 @@ import Control.Applicative
 import Data.Hashable
 import Data.Interned
 import Data.List
-import Foreign.LibFFI.Experimental.Base
-import Foreign.LibFFI.Experimental.FFIType
-import Foreign.LibFFI.Experimental.Type
+import Foreign.LibFFI.Dynamic.Base
+import Foreign.LibFFI.Dynamic.FFIType
+import Foreign.LibFFI.Dynamic.Type
 import Foreign.C.Types
 import Foreign.Marshal
 import Foreign.Ptr

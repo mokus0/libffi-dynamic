@@ -2,17 +2,20 @@
 {-# LANGUAGE GeneralizedNewtypeDeriving #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
-module Foreign.LibFFI.Experimental.FFIType where
+{-# LANGUAGE TemplateHaskell #-}
+module Foreign.LibFFI.Dynamic.FFIType where
 
 import Data.Functor.Contravariant
 import Data.Int
 import Data.Word
 import Foreign.C
-import Foreign.LibFFI.Experimental.Type
+import Foreign.LibFFI.Dynamic.Type
 import Foreign.Marshal hiding (void)
 import Foreign.Ptr
 import Foreign.StablePtr
 import Foreign.Storable
+
+#include <stdbool.h>
 
 class FFIType a where
     ffiType :: Type a
@@ -95,6 +98,42 @@ instance FFIType () where ffiType = void
 instance RetType () where
     inRet = InRet ($ nullPtr) (\_ -> return ())
     outRet = OutRet (\_ _ -> return ())
+
+type BoolRepr =
+    $( case #{const sizeof(bool)} of
+        1 -> [t| Word8   |]
+        2 -> [t| Word16  |]
+        4 -> [t| Word32  |]
+        8 -> [t| Word64  |]
+        _ -> fail "Bool is weird"
+    )
+
+instance FFIType Bool where
+    ffiType = castType (ffiType :: Type BoolRepr)
+
+instance RetType Bool where
+    inRet = castInRet (fmap fromWord inRet)
+        where
+            fromWord :: Word -> Bool
+            fromWord = (0 /=)
+    
+    outRet = castOutRet (contramap toWord outRet)
+        where
+            toWord :: Bool -> Word
+            toWord False    = 0
+            toWord True     = 1
+
+instance ArgType Bool where
+    inArg = castInArg (fmap fromRepr inArg)
+        where
+            fromRepr :: BoolRepr -> Bool
+            fromRepr = (0 /=)
+
+    outArg = castOutArg (contramap toRepr outArg)
+        where
+            toRepr :: Bool -> BoolRepr
+            toRepr False    = 0
+            toRepr True     = 1
 
 instance FFIType (Ptr a) where ffiType = pointer
 instance ArgType (Ptr a)

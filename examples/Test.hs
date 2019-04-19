@@ -1,11 +1,15 @@
 {-# LANGUAGE ForeignFunctionInterface #-}
+-- To run this example:
+--  gcc -c test-c.c
+--  ghc -O Test -main-is Test test-c.o
+--  ./Test
 module Test where
 
 import Data.Int
 import Data.Word
 import Data.IORef
 import Foreign.C
-import Foreign.LibFFI.Experimental
+import Foreign.LibFFI.Dynamic
 import Foreign.Ptr
 import Foreign.Storable
 

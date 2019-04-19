@@ -10,8 +10,8 @@ module Foreign.Dynamic
     ) where
 
 import Control.Exception
-import Foreign.LibFFI.Experimental.CIF
-import Foreign.LibFFI.Experimental.FFIType
+import Foreign.LibFFI.Dynamic.CIF
+import Foreign.LibFFI.Dynamic.FFIType
 import Foreign.Marshal
 import Foreign.Ptr
 import Foreign.Storable
@@ -22,6 +22,9 @@ type WithArgs = Int -> (Ptr (Ptr ()) -> IO ()) -> IO ()
 newtype Dyn a b = Dyn
     { prepDynamic :: Int -> WithArgs -> Call a -> b
     }
+
+instance Functor (Dyn a) where
+    fmap f (Dyn prep) = Dyn (\n withArgs call -> f (prep n withArgs call))
 
 mkDyn :: InRet a b -> Dyn (IO a) (IO b)
 mkDyn ret = Dyn 

@@ -1,4 +1,4 @@
-module Foreign.LibFFI.Experimental.Base where
+module Foreign.LibFFI.Dynamic.Base where
 
 import Foreign.C.Types
 
