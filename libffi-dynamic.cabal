@@ -1,5 +1,5 @@
 name:                   libffi-dynamic
-version:                0.0.0.1
+version:                0.0.0.2
 stability:              experimental
 
 cabal-version:          >= 1.6
@@ -50,5 +50,5 @@ Library
                         -Dffi_closure_alloc=hs_ffi_closure_alloc
                         -Dffi_closure_free=hs_ffi_closure_free
   
-  include-dirs:         include
-  install-includes:     hs_libffi_closure.h
+  include-dirs:         cbits, include
+  install-includes:     dlmalloc.c, hs_libffi_closure.h
